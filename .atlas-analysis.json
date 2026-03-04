@@ -1,0 +1,66 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "wt",
+  "projectDescription": "Universal Git worktree management script with automatic environment sync and package manager detection",
+  "theme": "aspen",
+  "primaryColor": "#32CD32",
+  "lightColor": "#98FB98",
+  "darkColor": "#228B22",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": [
+          "introduction",
+          "installation",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Commands",
+        "pages": [
+          "commands/new",
+          "commands/ls",
+          "commands/cd",
+          "commands/rm",
+          "commands/dev",
+          "commands/sync",
+          "commands/status"
+        ]
+      },
+      {
+        "group": "Configuration",
+        "pages": [
+          "configuration/wtconfig",
+          "configuration/package-managers"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "guides/workflows",
+          "guides/troubleshooting"
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Automatic repository root detection",
+    "Smart package.json location detection with .wtconfig override",
+    "Automatic .env file sync across worktrees",
+    "Multi-package manager support (bun, pnpm, yarn, npm)",
+    "Interactive selection with fzf integration",
+    "Colored terminal output for better visibility",
+    "Shell function integration for seamless cd navigation"
+  ],
+  "publicApiSurface": [
+    "wt new <branch> [base-branch]",
+    "wt ls [--plain|--fzf]",
+    "wt cd <branch>",
+    "wt rm [-f|--force] [branch]",
+    "wt dev [branch]",
+    "wt sync [branch]",
+    "wt status",
+    "wt install"
+  ]
+}
