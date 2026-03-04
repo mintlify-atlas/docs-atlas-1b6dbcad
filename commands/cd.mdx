@@ -54,7 +54,7 @@ $ wt cd
 ```
 
 **Interactive Display:**
-```
+```text
 > wt cd>
   main
   feature/api
@@ -97,7 +97,7 @@ $ pwd
 
 If multiple worktrees match the query:
 
-```bash
+```text
 $ wt cd feature
 [error] Ambiguous branch/worktree selector: feature
 [warn] Matched worktrees:
@@ -112,7 +112,7 @@ Provide a more specific selector to resolve the ambiguity.
 
 If no worktree matches the query:
 
-```bash
+```text
 $ wt cd nonexistent
 [error] No worktree found for: nonexistent
 [warn] Did you mean:
@@ -122,7 +122,7 @@ $ wt cd nonexistent
 
 Or if no suggestions found:
 
-```bash
+```text
 $ wt cd xyz
 [error] No worktree found for: xyz
 [warn] Available branches:
@@ -141,7 +141,7 @@ The command provides intelligent suggestions based on:
 
 ### Example
 
-```bash
+```text
 $ wt cd feat
 [error] No worktree found for: feat
 [warn] Did you mean:
@@ -161,7 +161,7 @@ The `wt cd` command requires shell integration from `wt install` to actually cha
 3. Runs `cd` to the path in your current shell
 
 **Without shell integration:**
-```bash
+```text
 $ ./wt cd feature/api
 ~/worktrees/myapp/feature-api
 $ pwd

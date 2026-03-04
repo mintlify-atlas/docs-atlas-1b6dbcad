@@ -26,7 +26,7 @@ Before installing `wt`, ensure you have the following:
   <Step title="Clone the repository">
     Clone the `wt` repository to your home directory:
     
-    ```bash
+    ```text
     cd ~
     git clone https://github.com/uglyus-daniel/wt.git
     cd wt
@@ -36,7 +36,7 @@ Before installing `wt`, ensure you have the following:
   <Step title="Make the script executable">
     Set executable permissions on the `wt` script:
     
-    ```bash
+    ```text
     chmod +x wt
     ```
   </Step>
@@ -44,7 +44,7 @@ Before installing `wt`, ensure you have the following:
   <Step title="Run the installer">
     Execute the installation command:
     
-    ```bash
+    ```text
     ./wt install
     ```
     
@@ -57,7 +57,7 @@ Before installing `wt`, ensure you have the following:
   <Step title="Apply the changes">
     Source your shell configuration or open a new terminal:
     
-    ```bash
+    ```text
     source ~/.zshrc
     ```
   </Step>
@@ -65,7 +65,7 @@ Before installing `wt`, ensure you have the following:
   <Step title="Verify installation">
     Confirm `wt` is working correctly:
     
-    ```bash
+    ```text
     wt help
     ```
   </Step>
@@ -159,7 +159,7 @@ To remove `wt` from your system:
 <Steps>
   <Step title="Remove the shell function">
     Edit your `~/.zshrc` and remove the section between:
-    ```bash
+    ```text
     # >>> wt setup >>>
     # ...
     # <<< wt setup <<<
@@ -167,13 +167,13 @@ To remove `wt` from your system:
   </Step>
 
   <Step title="Delete the script">
-    ```bash
+    ```text
     rm -rf ~/wt
     ```
   </Step>
 
   <Step title="Reload your shell">
-    ```bash
+    ```text
     source ~/.zshrc
     ```
   </Step>

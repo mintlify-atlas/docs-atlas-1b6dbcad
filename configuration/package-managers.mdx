@@ -183,7 +183,7 @@ $ wt dev feature/new-ui
 
 <Tabs>
   <Tab title="Single Package">
-    ```
+    ```text
     my-app/
     ├── package.json
     ├── pnpm-lock.yaml  ← Detected here
@@ -194,7 +194,7 @@ $ wt dev feature/new-ui
   </Tab>
   
   <Tab title="Web Subdirectory">
-    ```
+    ```text
     my-project/
     ├── docs/
     └── web/
@@ -207,7 +207,7 @@ $ wt dev feature/new-ui
   </Tab>
   
   <Tab title="Monorepo">
-    ```
+    ```text
     monorepo/
     ├── pnpm-workspace.yaml
     ├── pnpm-lock.yaml  ← Detected at root
@@ -225,7 +225,7 @@ $ wt dev feature/new-ui
 
 <AccordionGroup>
 <Accordion title="Next.js with pnpm">
-```bash Project Structure
+```text Project Structure
 my-nextjs-app/
 ├── .wtconfig
 ├── package.json
@@ -244,7 +244,7 @@ WT_WEB_DIR="."
 </Accordion>
 
 <Accordion title="Vite with Bun">
-```bash Project Structure
+```text Project Structure
 vite-app/
 ├── package.json
 ├── bun.lockb
@@ -258,7 +258,7 @@ vite-app/
 </Accordion>
 
 <Accordion title="Monorepo with Yarn">
-```bash Project Structure
+```text Project Structure
 monorepo/
 ├── .wtconfig
 ├── package.json
@@ -279,7 +279,7 @@ WT_WEB_DIR="apps/web"
 </Accordion>
 
 <Accordion title="Legacy Project with npm">
-```bash Project Structure
+```text Project Structure
 legacy-app/
 ├── .wtconfig
 ├── web/
@@ -339,7 +339,7 @@ By default, `wt` uses "frozen lockfile" modes to ensure consistent installations
 <AccordionGroup>
 <Accordion title="Warning: No lockfile found">
 **Message:**
-```
+```text
 [warn] No lockfile found in /path/to/package/dir. Falling back to npm install.
 ```
 
@@ -358,7 +358,7 @@ By default, `wt` uses "frozen lockfile" modes to ensure consistent installations
 
 <Accordion title="Error: Required command not found">
 **Message:**
-```
+```text
 [error] Required command not found: pnpm
 ```
 

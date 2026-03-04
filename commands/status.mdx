@@ -29,20 +29,20 @@ $ wt status
 ```
 
 **Clean worktree:**
-```
+```text
 main  /Users/dev/myapp
   clean
 ```
 
 **Dirty worktree:**
-```
+```text
 feature/api  /Users/dev/worktrees/myapp/feature-api
   M src/api/routes.ts
   ?? src/api/new-endpoint.ts
 ```
 
 **Multiple worktrees:**
-```
+```text
 main  /Users/dev/myapp
   clean
 
@@ -76,7 +76,7 @@ The output uses git's short status format:
 
 ### Staged vs Unstaged
 
-```
+```text
  M file.ts    # Staged modification
  M file.ts    # Unstaged modification  
 MM file.ts    # Both staged and unstaged modifications
@@ -253,7 +253,7 @@ wt status | awk '/^[a-z]/ {branch=$1; path=$2} /^  [A-Z?]/ {if(branch) {print pa
 ```
 
 Output:
-```
+```text
 /Users/dev/worktrees/myapp/feature-api
 /Users/dev/worktrees/myapp/bugfix-auth
 ```

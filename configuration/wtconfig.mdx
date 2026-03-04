@@ -128,7 +128,7 @@ WT_ENV_FILE="apps/frontend/.env"
 ## Complete Examples
 
 <Accordion title="Standard Project">
-```bash .wtconfig
+```text .wtconfig
 # Standard single-package project
 # package.json at repository root
 
@@ -138,7 +138,7 @@ WT_ENV_FILE=".env"
 ```
 
 **Structure:**
-```
+```text
 my-app/
 ├── .wtconfig
 ├── .env
@@ -148,7 +148,7 @@ my-app/
 </Accordion>
 
 <Accordion title="Web Subdirectory">
-```bash .wtconfig
+```text .wtconfig
 # Web application in subdirectory
 
 WT_WEB_DIR="web"
@@ -157,7 +157,7 @@ WT_ENV_FILE="web/.env"
 ```
 
 **Structure:**
-```
+```text
 my-project/
 ├── .wtconfig
 ├── docs/
@@ -169,7 +169,7 @@ my-project/
 </Accordion>
 
 <Accordion title="Monorepo Configuration">
-```bash .wtconfig
+```text .wtconfig
 # Monorepo with multiple apps
 # Configure for the main frontend app
 
@@ -179,7 +179,7 @@ WT_ENV_FILE="apps/frontend/.env.local"
 ```
 
 **Structure:**
-```
+```text
 monorepo/
 ├── .wtconfig
 ├── packages/
@@ -194,7 +194,7 @@ monorepo/
 </Accordion>
 
 <Accordion title="Custom Worktree Location">
-```bash .wtconfig
+```text .wtconfig
 # Store worktrees on a different drive
 # Useful for large projects or SSD optimization
 
@@ -208,7 +208,7 @@ WT_ENV_FILE=".env.development"
 
 When you run any `wt` command, the tool automatically sets up the repository context using the `setup_repo_context` function (around line 307):
 
-```bash
+```text
 1. Detect git repository root
 2. Find primary worktree path
 3. Look for .wtconfig file

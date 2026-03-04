@@ -13,7 +13,7 @@ Working on multiple features simultaneously is one of the primary use cases for 
   <Step title="Create worktrees for each feature">
     Create a new worktree for each feature branch you're working on:
 
-    ```bash
+    ```text
     wt new feature/user-auth main
     wt new feature/dashboard main
     wt new bugfix/login-error main
@@ -39,7 +39,7 @@ Working on multiple features simultaneously is one of the primary use cases for 
     - Full path
 
     For a plain text list without fzf:
-    ```bash
+    ```text
     wt ls --plain
     ```
   </Step>
@@ -327,7 +327,7 @@ WT_ENV_FILE="apps/web/.env.local"
 
 Here's a complete example of a typical development session:
 
-```bash
+```text
 # Start working on a new feature
 wt new feature/payment-integration main
 # Automatically switches to the new worktree

@@ -51,7 +51,7 @@ wt new feature/user-auth
 ```
 
 **Output:**
-```
+```text
 [info] Creating branch 'feature/user-auth' from 'main'
 [ok] .env copied to ~/worktrees/myapp/feature-user-auth/.env
 [info] Installing dependencies with pnpm in ~/worktrees/myapp/feature-user-auth
@@ -119,7 +119,7 @@ Fails if the target directory exists but isn't a worktree.
 
 ### Behind Remote Warning
 
-```bash
+```text
 [warn] Branch 'feature/old' is 3 commit(s) behind origin/main.
 [warn] 최신 상태로 맞추려면: git -C <worktree경로> rebase origin/main
 ```
@@ -130,7 +130,7 @@ Displays when an existing branch is behind its remote tracking branch.
 
 Customize behavior via `.wtconfig` in your repo root:
 
-```bash
+```text
 # Base directory for worktrees (default: ~/worktrees/<repo-name>)
 WT_BASE_DIR="$HOME/dev/worktrees/myproject"
 

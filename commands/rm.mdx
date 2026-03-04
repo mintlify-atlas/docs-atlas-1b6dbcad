@@ -30,7 +30,7 @@ $ wt rm
 ```
 
 **Interactive Display:**
-```
+```text
 > wt rm>
   feature/api       b2c3d4e  dirty   /Users/dev/worktrees/myapp/feature-api
   bugfix/auth       c3d4e5f  clean   /Users/dev/worktrees/myapp/bugfix-auth
@@ -44,7 +44,7 @@ $ wt rm
 
 After selection, you'll see a confirmation prompt:
 
-```
+```text
 Really remove 'feature/api' (~/worktrees/myapp/feature-api)? [y/N]:
 ```
 
@@ -95,7 +95,7 @@ $ wt rm feature-old-api
 
 The primary worktree cannot be removed:
 
-```bash
+```text
 $ wt rm main
 [error] Cannot remove the primary worktree: /Users/dev/myapp
 ```
@@ -104,7 +104,7 @@ $ wt rm main
 
 When uncommitted changes are detected:
 
-```bash
+```text
 $ wt rm feature/api
 [warn] Dirty working tree detected: ~/worktrees/myapp/feature-api
 Remove anyway? [y/N]:
@@ -118,7 +118,7 @@ Respond with:
 
 When using interactive mode (even for clean worktrees):
 
-```bash
+```text
 Really remove 'feature/api' (~/worktrees/myapp/feature-api)? [y/N]:
 ```
 
@@ -181,7 +181,7 @@ Provide a more specific branch name.
 
 ## No Match Found
 
-```bash
+```text
 $ wt rm nonexistent
 [error] No worktree found for: nonexistent
 [warn] Did you mean:
