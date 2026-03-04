@@ -1,0 +1,359 @@
+---
+title: Common Workflows
+description: Learn best practices and common workflows for using wt effectively
+---
+
+This guide covers common workflows and best practices for managing multiple worktrees with the `wt` CLI tool.
+
+## Multi-Feature Development Workflow
+
+Working on multiple features simultaneously is one of the primary use cases for `wt`. Here's the recommended workflow:
+
+<Steps>
+  <Step title="Create worktrees for each feature">
+    Create a new worktree for each feature branch you're working on:
+
+    ```bash
+    wt new feature/user-auth main
+    wt new feature/dashboard main
+    wt new bugfix/login-error main
+    ```
+
+    Each worktree will:
+    - Be created in `~/worktrees/<repo-name>/<branch-slug>`
+    - Have dependencies installed automatically
+    - Have `.env` files copied from the main worktree
+  </Step>
+
+  <Step title="View all active worktrees">
+    Use `wt ls` to see all your worktrees with their status:
+
+    ```bash
+    wt ls
+    ```
+
+    This shows an interactive list with:
+    - Branch name
+    - Current commit (short hash)
+    - Working tree state (clean/dirty)
+    - Full path
+
+    For a plain text list without fzf:
+    ```bash
+    wt ls --plain
+    ```
+  </Step>
+
+  <Step title="Switch between worktrees">
+    Quickly jump to any worktree by branch name:
+
+    ```bash
+    wt cd feature/user-auth
+    ```
+
+    Or use the interactive selector by omitting the branch name:
+    ```bash
+    wt cd
+    ```
+
+    The `cd` command accepts:
+    - Full branch name: `feature/user-auth`
+    - Slugified name: `feature-user-auth`
+    - Directory name: `feature-user-auth`
+  </Step>
+
+  <Step title="Run development servers">
+    Start the dev server for any worktree:
+
+    ```bash
+    wt dev feature/user-auth
+    ```
+
+    Or run it from within a worktree without specifying the branch:
+    ```bash
+    cd ~/worktrees/myrepo/feature-user-auth
+    wt dev
+    ```
+
+    The tool automatically detects your package manager (bun, pnpm, yarn, or npm) and runs the appropriate dev command.
+  </Step>
+
+  <Step title="Check status across all worktrees">
+    Get a quick overview of changes in all worktrees:
+
+    ```bash
+    wt status
+    ```
+
+    This shows uncommitted changes across all worktrees, helping you track which features have pending work.
+  </Step>
+</Steps>
+
+## Switching Between Worktrees
+
+### Quick Navigation
+
+The most efficient way to switch between worktrees is using the interactive selector:
+
+```bash
+wt cd
+```
+
+This opens an fzf interface where you can:
+- Type to filter branches
+- Use arrow keys to navigate
+- Press Enter to switch
+
+### Direct Navigation
+
+If you know the branch name, switch directly:
+
+```bash
+wt cd feature/user-auth
+```
+
+### Fuzzy Matching
+
+The tool supports fuzzy matching on branch names:
+
+```bash
+# These all work for branch "feature/user-auth":
+wt cd feature/user-auth    # full branch name
+wt cd feature-user-auth    # slugified name
+wt cd user-auth            # partial match
+```
+
+## Environment File Management
+
+### Automatic Sync on Creation
+
+When you create a new worktree, `.env` files are automatically copied:
+
+```bash
+wt new feature/new-feature main
+# .env is automatically copied from main worktree
+```
+
+### Manual Sync to All Worktrees
+
+After updating environment variables in your main worktree, sync to all others:
+
+```bash
+wt sync
+```
+
+This copies the `.env` file from your primary worktree to all other worktrees.
+
+### Sync to Specific Worktree
+
+Sync environment variables to a single worktree:
+
+```bash
+wt sync feature/user-auth
+```
+
+### Custom Environment File Path
+
+By default, `wt` looks for `.env` in your package directory. To use a different path, create a `.wtconfig` file in your repo root:
+
+```bash
+# .wtconfig
+WT_ENV_FILE="apps/web/.env"
+```
+
+<Note>
+The `WT_ENV_FILE` path must be relative to the repository root, not absolute.
+</Note>
+
+## Cleaning Up Old Worktrees
+
+### Interactive Removal
+
+Remove worktrees interactively with confirmation:
+
+```bash
+wt rm
+```
+
+This opens an fzf selector where you can:
+- Browse all removable worktrees
+- Select one to remove
+- Confirm the deletion
+
+### Direct Removal
+
+Remove a specific worktree by branch name:
+
+```bash
+wt rm feature/old-feature
+```
+
+### Force Removal of Dirty Worktrees
+
+If a worktree has uncommitted changes, you'll be prompted to confirm. To force removal:
+
+```bash
+wt rm --force feature/old-feature
+```
+
+<Warning>
+The primary worktree cannot be removed. The tool will prevent you from accidentally removing it.
+</Warning>
+
+### Batch Cleanup
+
+To remove multiple old worktrees, use the interactive mode repeatedly:
+
+```bash
+wt rm  # Remove first worktree
+wt rm  # Remove second worktree
+wt rm  # Remove third worktree
+```
+
+## Using with Different Package Managers
+
+### Automatic Detection
+
+The `wt` tool automatically detects your package manager by checking for lock files:
+
+1. **bun** - checks for `bun.lockb`
+2. **pnpm** - checks for `pnpm-lock.yaml`
+3. **yarn** - checks for `yarn.lock`
+4. **npm** - checks for `package-lock.json`
+
+If no lock file is found, it falls back to npm.
+
+### Package Manager Commands
+
+Based on detection, the tool uses these commands:
+
+| Manager | Install Command | Dev Command |
+|---------|----------------|-------------|
+| bun | `bun install` | `bun run dev` |
+| pnpm | `pnpm install --frozen-lockfile` | `pnpm dev` |
+| yarn | `yarn install --frozen-lockfile` | `yarn dev` |
+| npm | `npm ci` | `npm run dev` |
+
+### Custom Package Directory
+
+If your `package.json` is in a subdirectory, configure it in `.wtconfig`:
+
+```bash
+# .wtconfig
+WT_WEB_DIR="apps/web"
+```
+
+The tool will:
+- Auto-detect if `package.json` is at repo root
+- Check immediate subdirectories
+- Use `WT_WEB_DIR` as override
+
+<Note>
+`WT_WEB_DIR` can be an absolute path or relative to the repo root.
+</Note>
+
+## Advanced Configuration
+
+### Custom Worktree Location
+
+By default, worktrees are created in `~/worktrees/<repo-name>/`. To change this:
+
+```bash
+# .wtconfig
+WT_BASE_DIR="$HOME/dev/worktrees/myproject"
+```
+
+### Complete Configuration Example
+
+Here's a complete `.wtconfig` for a monorepo:
+
+```bash
+# .wtconfig
+
+# Package directory (relative to repo root)
+WT_WEB_DIR="apps/web"
+
+# Base directory for all worktrees
+WT_BASE_DIR="$HOME/worktrees/myproject"
+
+# Environment file path (relative to repo root)
+WT_ENV_FILE="apps/web/.env.local"
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Keep worktrees focused">
+    Create one worktree per feature or bug fix. This keeps your work isolated and makes it easier to switch contexts.
+  </Accordion>
+
+  <Accordion title="Clean up regularly">
+    Remove worktrees after merging branches to avoid cluttering your filesystem:
+    ```bash
+    wt rm feature/completed-feature
+    ```
+  </Accordion>
+
+  <Accordion title="Use descriptive branch names">
+    Since worktree directory names are based on branch names, use clear, descriptive names:
+    - Good: `feature/user-authentication`
+    - Avoid: `test`, `tmp`, `fix`
+  </Accordion>
+
+  <Accordion title="Sync environment files after updates">
+    When you update environment variables, sync them to all worktrees:
+    ```bash
+    wt sync
+    ```
+  </Accordion>
+
+  <Accordion title="Check status before cleanup">
+    Before removing worktrees, check for uncommitted work:
+    ```bash
+    wt status
+    ```
+  </Accordion>
+
+  <Accordion title="Use .wtconfig for team consistency">
+    Commit `.wtconfig` to your repository so all team members use the same structure:
+    ```bash
+    git add .wtconfig
+    git commit -m "Add wt configuration"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Example Workflow Session
+
+Here's a complete example of a typical development session:
+
+```bash
+# Start working on a new feature
+wt new feature/payment-integration main
+# Automatically switches to the new worktree
+
+# Make some changes, then start working on a bug fix
+wt new bugfix/checkout-error main
+
+# Start the dev server
+wt dev
+
+# Switch back to the feature branch
+wt cd feature/payment-integration
+
+# Update environment variables in main worktree
+cd ~/myrepo
+vim .env
+
+# Sync to all worktrees
+wt sync
+
+# Check status of all worktrees
+wt status
+
+# After merging, clean up
+wt rm feature/payment-integration
+wt rm bugfix/checkout-error
+```
+
+This workflow demonstrates how `wt` enables efficient parallel development across multiple branches.

@@ -1,0 +1,368 @@
+---
+title: "wt status"
+description: "View git status across all worktrees"
+---
+
+## Overview
+
+The `wt status` command displays the git status for all worktrees in a consolidated view, making it easy to see which branches have uncommitted changes.
+
+## Syntax
+
+```bash
+wt status
+```
+
+No arguments or flags required.
+
+## Output Format
+
+For each worktree, displays:
+
+1. **Branch name** (in cyan) and worktree path
+2. **Git status**: Either "clean" (green) or short status output
+
+### Example Output
+
+```bash
+$ wt status
+```
+
+**Clean worktree:**
+```
+main  /Users/dev/myapp
+  clean
+```
+
+**Dirty worktree:**
+```
+feature/api  /Users/dev/worktrees/myapp/feature-api
+  M src/api/routes.ts
+  ?? src/api/new-endpoint.ts
+```
+
+**Multiple worktrees:**
+```
+main  /Users/dev/myapp
+  clean
+
+feature/api  /Users/dev/worktrees/myapp/feature-api
+  M src/api/routes.ts
+  M src/api/handlers.ts
+  ?? tests/api.test.ts
+
+feature/ui  /Users/dev/worktrees/myapp/feature-ui
+  clean
+
+bugfix/auth  /Users/dev/worktrees/myapp/bugfix-auth
+  M src/auth/login.ts
+ A  src/auth/session.ts
+```
+
+## Status Indicators
+
+The output uses git's short status format:
+
+| Indicator | Meaning |
+|-----------|----------|
+| `M` | Modified file |
+| `A` | Added (staged new file) |
+| `D` | Deleted file |
+| `R` | Renamed file |
+| `C` | Copied file |
+| `??` | Untracked file |
+| `!!` | Ignored file |
+| `UU` | Unmerged (both modified) |
+
+### Staged vs Unstaged
+
+```
+ M file.ts    # Staged modification
+ M file.ts    # Unstaged modification  
+MM file.ts    # Both staged and unstaged modifications
+```
+
+First column = staged, second column = unstaged.
+
+## Examples
+
+### Check All Worktrees
+
+```bash
+$ wt status
+main  /Users/dev/myapp
+  clean
+
+feature/api  /Users/dev/worktrees/myapp/feature-api
+  M src/api/routes.ts
+  ?? src/api/new-endpoint.ts
+
+feature/ui  /Users/dev/worktrees/myapp/feature-ui
+  clean
+```
+
+### Find Dirty Worktrees
+
+```bash
+$ wt status | grep -B1 "^  [A-Z?]"
+feature/api  /Users/dev/worktrees/myapp/feature-api
+  M src/api/routes.ts
+--
+bugfix/auth  /Users/dev/worktrees/myapp/bugfix-auth
+  M src/auth/login.ts
+```
+
+### Count Worktrees with Changes
+
+```bash
+$ wt status | grep -c "^  [A-Z?]"
+2
+```
+
+## Use Cases
+
+### Before Removing Worktrees
+
+Check for uncommitted work:
+
+```bash
+$ wt status
+feature/old-api  /Users/dev/worktrees/myapp/feature-old-api
+  M src/api/legacy.ts  # Oops, uncommitted changes!
+
+# Commit or stash before removing
+$ git -C ~/worktrees/myapp/feature-old-api add .
+$ git -C ~/worktrees/myapp/feature-old-api commit -m "WIP"
+
+$ wt rm feature/old-api
+```
+
+### Daily Workflow Check
+
+Start your day by reviewing all active work:
+
+```bash
+$ wt status
+main  /Users/dev/myapp
+  clean
+
+feature/api  /Users/dev/worktrees/myapp/feature-api
+  M src/api/routes.ts  # Continue working here
+
+feature/ui  /Users/dev/worktrees/myapp/feature-ui
+  clean  # Ready to merge?
+```
+
+### Before Context Switching
+
+Make sure nothing is left uncommitted:
+
+```bash
+$ wt status
+feature/current  /Users/dev/worktrees/myapp/feature-current
+  M src/component.tsx
+  ?? src/new-file.tsx
+
+# Commit or stash
+$ wt cd feature/current
+$ git add .
+$ git commit -m "WIP: save progress"
+
+# Now switch to different branch
+$ wt cd feature/next
+```
+
+### Pre-Release Checklist
+
+Ensure all worktrees are clean before release:
+
+```bash
+$ wt status
+main  /Users/dev/myapp
+  clean
+
+release/v1.2  /Users/dev/worktrees/myapp/release-v1.2
+  clean  # Good to go!
+```
+
+## Comparison with wt ls
+
+| Feature | wt status | wt ls |
+|---------|-----------|--------|
+| **Shows git changes** | Yes (detailed) | Yes (clean/dirty only) |
+| **Interactive mode** | No | Yes (fzf) |
+| **Shows commit hash** | No | Yes |
+| **Best for** | Checking what changed | Navigation and overview |
+
+### When to Use Each
+
+```bash
+# Quick overview of all worktrees
+$ wt ls --plain
+BRANCH          HEAD      STATE    PATH
+main            a1b2c3d   clean    /Users/dev/myapp
+feature/api     b2c3d4e   dirty    /Users/dev/worktrees/myapp/feature-api
+
+# Detailed view of what changed
+$ wt status
+main  /Users/dev/myapp
+  clean
+
+feature/api  /Users/dev/worktrees/myapp/feature-api
+  M src/api/routes.ts
+  M src/api/handlers.ts
+  ?? tests/api.test.ts
+```
+
+## Performance
+
+For repositories with many worktrees:
+
+```bash
+# wt status runs git status in each worktree
+# With 10 worktrees, takes ~1-2 seconds
+$ time wt status
+real    0m1.234s
+```
+
+For large repositories, consider checking specific worktrees:
+
+```bash
+# Check single worktree directly
+$ git -C ~/worktrees/myapp/feature-api status --short
+```
+
+## Scripting Examples
+
+### Alert on Dirty Worktrees
+
+```bash
+#!/bin/bash
+if wt status | grep -q "^  [A-Z?]"; then
+  echo "Warning: You have uncommitted changes in worktrees"
+  exit 1
+fi
+echo "All worktrees are clean"
+```
+
+### List Only Dirty Worktrees
+
+```bash
+#!/bin/bash
+wt status | awk '/^[a-z]/ {branch=$1; path=$2} /^  [A-Z?]/ {if(branch) {print path; branch=""}}'
+```
+
+Output:
+```
+/Users/dev/worktrees/myapp/feature-api
+/Users/dev/worktrees/myapp/bugfix-auth
+```
+
+### Commit All Dirty Worktrees
+
+```bash
+#!/bin/bash
+for dir in $(wt status | awk '/^[a-z]/ {branch=$1; path=$2} /^  [A-Z?]/ {if(branch) {print path; branch=""}}'); do
+  echo "Committing $dir"
+  git -C "$dir" add .
+  git -C "$dir" commit -m "WIP: auto-commit"
+done
+```
+
+## Output Parsing
+
+The output format is consistent for scripting:
+
+### Pattern 1: Branch and Path
+
+```
+<branch>  <absolute-path>
+```
+
+Example:
+```
+feature/api  /Users/dev/worktrees/myapp/feature-api
+```
+
+### Pattern 2: Status Lines
+
+Indented by 2 spaces, followed by git short status:
+
+```
+  <git-status-line>
+```
+
+Or:
+
+```
+  clean
+```
+
+## Integration with Other Commands
+
+### Check Before Sync
+
+```bash
+$ wt status
+# See which worktrees might need env updates
+
+$ wt sync
+# Update all .env files
+```
+
+### Check After Development
+
+```bash
+$ wt dev feature/api
+# ... make changes ...
+# Ctrl-C to stop dev server
+
+$ wt status
+feature/api  /Users/dev/worktrees/myapp/feature-api
+  M src/api/routes.ts
+  ?? tests/api.test.ts
+
+$ wt cd feature/api
+$ git add .
+$ git commit -m "Add new API routes"
+```
+
+### Pre-Remove Safety Check
+
+```bash
+$ wt status | grep feature/old
+feature/old  /Users/dev/worktrees/myapp/feature-old
+  clean
+
+$ wt rm feature/old  # Safe to remove
+```
+
+## Color Output
+
+Branch names are displayed in cyan for better readability:
+
+- **Cyan**: Branch name
+- **Green**: "clean" status
+- **Default**: Git status lines
+
+Colors are automatically disabled when output is piped:
+
+```bash
+$ wt status | tee status.log  # No colors in file
+```
+
+## Exit Codes
+
+| Code | Meaning |
+|------|----------|
+| 0 | Success (always, even if worktrees are dirty) |
+
+<Note>
+  `wt status` always exits with 0, even if there are uncommitted changes. Use scripting (grep) to detect dirty worktrees.
+</Note>
+
+## See Also
+
+- [wt ls](/commands/ls) - Quick overview with clean/dirty indicator
+- [wt rm](/commands/rm) - Remove worktrees (checks for dirty state)
+- [wt cd](/commands/cd) - Navigate to worktree to commit changes

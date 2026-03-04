@@ -1,0 +1,286 @@
+---
+title: "wt dev"
+description: "Start the development server in a worktree"
+---
+
+## Overview
+
+The `wt dev` command starts the development server for a specified worktree, automatically detecting the package manager and running the appropriate dev command.
+
+## Syntax
+
+```bash
+wt dev [branch]
+```
+
+<ParamField path="branch" type="string">
+  Branch name, slug, or directory name of the worktree. If omitted, uses the current worktree or launches interactive picker.
+</ParamField>
+
+## Branch Resolution
+
+The command resolves the branch in the following order:
+
+1. **Explicit argument**: If `branch` is provided, uses that
+2. **Current worktree**: If run within a worktree directory, uses the current branch
+3. **Interactive selection**: If `fzf` is installed, shows a picker
+4. **Error**: If none of the above, shows available branches
+
+## Package Manager Detection
+
+Automatically detects the package manager based on lockfiles:
+
+| Lockfile | Package Manager | Dev Command |
+|----------|----------------|--------------|
+| `bun.lockb` | bun | `bun run dev` |
+| `pnpm-lock.yaml` | pnpm | `pnpm dev` |
+| `yarn.lock` | yarn | `yarn dev` |
+| `package-lock.json` | npm | `npm run dev` |
+| None | npm (fallback) | `npm run dev` |
+
+<Note>
+  The package manager is detected from the package directory (where `package.json` is located), not the repo root.
+</Note>
+
+## Examples
+
+### Start Dev Server for Specific Branch
+
+```bash
+$ wt dev feature/api
+[info] Running dev with pnpm in ~/worktrees/myapp/feature-api
+
+> myapp@1.0.0 dev
+> next dev
+
+ready - started server on 0.0.0.0:3000
+```
+
+### Start Dev Server in Current Worktree
+
+```bash
+$ cd ~/worktrees/myapp/feature-ui
+$ wt dev
+[info] Running dev with bun in ~/worktrees/myapp/feature-ui
+
+  VITE v5.0.0  ready in 234 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.1.100:5173/
+```
+
+### Interactive Selection
+
+```bash
+$ wt dev
+```
+
+**Interactive Display:**
+```
+> wt dev>
+  main
+  feature/api
+  feature/ui
+  bugfix/login
+```
+
+After selection:
+```
+[info] Running dev with pnpm in ~/worktrees/myapp/feature-api
+```
+
+### Run from Anywhere
+
+```bash
+# Even from outside the repo
+$ cd ~
+$ wt dev feature/api
+[info] Running dev with pnpm in ~/worktrees/myapp/feature-api
+```
+
+## Package Directory Detection
+
+The command finds `package.json` in this order:
+
+1. **Configured location**: Uses `PACKAGE_REL` from context (set via `WT_WEB_DIR`)
+2. **Fallback detection**: If not found at configured location, runs `detect_package_rel()` on the worktree
+
+### Monorepo Example
+
+```bash
+# .wtconfig
+WT_WEB_DIR="packages/web"
+```
+
+```bash
+$ wt dev feature/api
+[info] Running dev with pnpm in ~/worktrees/myapp/feature-api/packages/web
+```
+
+## Error Handling
+
+### No Match Found
+
+```bash
+$ wt dev nonexistent
+[error] No worktree found for: nonexistent
+[warn] Did you mean:
+  - feature/new-feature
+```
+
+### Package.json Not Found
+
+```bash
+$ wt dev feature/api
+[error] Cannot find package.json under worktree: ~/worktrees/myapp/feature-api
+```
+
+Ensure the worktree has a `package.json` or configure `WT_WEB_DIR` correctly.
+
+### Package Manager Not Installed
+
+```bash
+$ wt dev feature/api
+[error] Required command not found: pnpm
+```
+
+Install the required package manager:
+
+```bash
+npm install -g pnpm
+```
+
+### Dev Script Missing
+
+If `package.json` doesn't have a `dev` script:
+
+```bash
+$ wt dev feature/api
+[info] Running dev with npm in ~/worktrees/myapp/feature-api
+npm error Missing script: "dev"
+```
+
+Add a `dev` script to `package.json`:
+
+```json
+{
+  "scripts": {
+    "dev": "next dev"
+  }
+}
+```
+
+## Common Workflows
+
+### Test Different Branches Side-by-Side
+
+Run dev servers on different ports:
+
+```bash
+# Terminal 1
+$ wt dev feature/new-ui
+# Runs on default port (e.g., 3000)
+
+# Terminal 2  
+$ PORT=3001 wt dev feature/old-ui
+# Runs on port 3001
+```
+
+### Quick Switch and Test
+
+```bash
+# Create new worktree and immediately start dev server
+$ wt new feature/quick-test && wt dev feature/quick-test
+```
+
+### Run Dev in Background
+
+```bash
+$ wt dev feature/api > dev.log 2>&1 &
+$ jobs
+[1]+  Running  wt dev feature/api > dev.log 2>&1 &
+```
+
+## Configuration
+
+Customize via `.wtconfig`:
+
+```bash
+# For monorepos - specify where package.json is located
+WT_WEB_DIR="apps/web"
+
+# OR for complex paths
+WT_WEB_DIR="packages/frontend/app"
+```
+
+## Integration with Other Commands
+
+### Create and Run
+
+```bash
+# Create worktree, install deps, then run dev
+$ wt new feature/test
+$ wt dev feature/test
+```
+
+With shell integration, this becomes:
+
+```bash
+$ wt new feature/test  # Auto-cd's into worktree
+$ wt dev               # Detects current worktree
+```
+
+### Check Before Running
+
+```bash
+# Make sure worktree is clean before starting dev
+$ wt status | grep feature/api
+feature/api  ~/worktrees/myapp/feature-api
+  clean
+
+$ wt dev feature/api
+```
+
+## Environment Variables
+
+The dev server runs with the worktree's environment:
+
+- Uses the `.env` file copied during `wt new`
+- Can be updated with `wt sync` if the primary `.env` changes
+
+```bash
+# Update env files, then restart dev
+$ wt sync feature/api
+[ok] .env copied to ~/worktrees/myapp/feature-api/.env
+
+$ wt dev feature/api
+# Now runs with updated environment
+```
+
+## Port Conflicts
+
+If the default port is in use:
+
+```bash
+$ wt dev feature/api
+[info] Running dev with pnpm in ~/worktrees/myapp/feature-api
+Error: Port 3000 is already in use
+```
+
+Specify a different port:
+
+```bash
+$ PORT=3001 wt dev feature/api
+```
+
+Or configure in the worktree's `.env`:
+
+```bash
+PORT=3001
+```
+
+## See Also
+
+- [wt new](/commands/new) - Create worktrees with automatic dependency installation
+- [wt sync](/commands/sync) - Sync environment files to worktrees
+- [wt cd](/commands/cd) - Navigate to a worktree before running dev

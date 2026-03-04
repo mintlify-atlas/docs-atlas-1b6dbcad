@@ -1,0 +1,325 @@
+---
+title: "wt sync"
+description: "Sync environment files from primary worktree"
+---
+
+## Overview
+
+The `wt sync` command copies the `.env` file from the primary worktree to one or all secondary worktrees, keeping environment configuration in sync across all your development branches.
+
+## Syntax
+
+```bash
+wt sync [branch]
+```
+
+<ParamField path="branch" type="string">
+  Branch name, slug, or directory name of a specific worktree to sync. If omitted, syncs to all worktrees.
+</ParamField>
+
+## Behavior
+
+### Sync to All Worktrees (Default)
+
+When no branch is specified:
+
+```bash
+$ wt sync
+[ok] .env copied to ~/worktrees/myapp/feature-api/.env
+[ok] .env copied to ~/worktrees/myapp/feature-ui/.env  
+[ok] .env copied to ~/worktrees/myapp/bugfix-auth/.env
+[ok] Synced env file to 3 worktree(s).
+```
+
+Copies the source `.env` to all secondary worktrees (excludes primary worktree).
+
+### Sync to Specific Worktree
+
+When a branch is specified:
+
+```bash
+$ wt sync feature/api
+[ok] .env copied to ~/worktrees/myapp/feature-api/.env
+[ok] Synced env file to 1 worktree(s).
+```
+
+## Environment File Source
+
+The source `.env` file is determined by:
+
+1. **Custom path**: If `WT_ENV_FILE` is set in `.wtconfig`
+2. **Default path**: `<package-directory>/.env` in the primary worktree
+
+Example source locations:
+
+```bash
+# Default (package.json in repo root)
+/Users/dev/myapp/.env
+
+# Monorepo with WT_WEB_DIR="packages/web"
+/Users/dev/myapp/packages/web/.env
+
+# Custom with WT_ENV_FILE="apps/frontend/.env.local"
+/Users/dev/myapp/apps/frontend/.env.local
+```
+
+## Examples
+
+### Update All Worktrees After Env Change
+
+```bash
+# Edit .env in primary worktree
+$ cd ~/myapp
+$ echo "NEW_API_KEY=abc123" >> .env
+
+# Sync to all worktrees
+$ wt sync
+[ok] .env copied to ~/worktrees/myapp/feature-api/.env
+[ok] .env copied to ~/worktrees/myapp/feature-ui/.env
+[ok] Synced env file to 2 worktree(s).
+```
+
+### Sync to Single Worktree
+
+```bash
+$ wt sync feature/api
+[ok] .env copied to ~/worktrees/myapp/feature-api/.env
+[ok] Synced env file to 1 worktree(s).
+```
+
+### After Pulling Updates
+
+If someone updated `.env` in the repo:
+
+```bash
+$ cd ~/myapp
+$ git pull origin main
+# .env has changes
+
+$ wt sync
+# Propagates changes to all worktrees
+```
+
+### Sync by Slug or Directory Name
+
+```bash
+$ wt sync feature-api
+[ok] .env copied to ~/worktrees/myapp/feature-api/.env
+[ok] Synced env file to 1 worktree(s).
+```
+
+## Configuration
+
+Customize environment file location via `.wtconfig`:
+
+### Default Configuration
+
+```bash
+# No .wtconfig needed
+# Uses <package-dir>/.env automatically
+```
+
+### Custom Env File Path
+
+```bash
+# .wtconfig
+WT_ENV_FILE="apps/web/.env.local"
+```
+
+Now `wt sync` copies from:
+```
+/Users/dev/myapp/apps/web/.env.local
+```
+
+To:
+```
+~/worktrees/myapp/feature-api/apps/web/.env.local
+```
+
+### Monorepo Example
+
+```bash
+# .wtconfig
+WT_WEB_DIR="packages/frontend"
+WT_ENV_FILE="packages/frontend/.env"
+```
+
+<Note>
+  `WT_ENV_FILE` must be relative to the repository root, not an absolute path.
+</Note>
+
+## Source File Missing
+
+If the source `.env` file doesn't exist:
+
+```bash
+$ wt sync
+[warn] Source env file not found: ~/myapp/.env
+```
+
+The command exits gracefully without error. Create the source file:
+
+```bash
+$ touch ~/myapp/.env
+$ wt sync
+[ok] .env copied to ~/worktrees/myapp/feature-api/.env
+...
+```
+
+## Target Directory Creation
+
+If the target directory doesn't exist, it's created automatically:
+
+```bash
+# Source: ~/myapp/apps/web/.env
+# Target: ~/worktrees/myapp/feature-api/apps/web/.env
+
+$ wt sync feature/api
+# Creates ~/worktrees/myapp/feature-api/apps/ if needed
+[ok] .env copied to ~/worktrees/myapp/feature-api/apps/web/.env
+```
+
+## Worktree Not Found
+
+```bash
+$ wt sync nonexistent
+[error] No worktree found for: nonexistent
+[warn] Did you mean:
+  - feature/new-feature
+```
+
+## Primary Worktree Exclusion
+
+The primary worktree is always excluded from sync:
+
+```bash
+$ wt sync
+# Syncs to all secondary worktrees
+# Primary worktree at ~/myapp is skipped
+```
+
+This prevents overwriting the source file.
+
+## Common Workflows
+
+### Regular Sync Routine
+
+```bash
+# After any .env update in primary worktree
+$ wt sync
+```
+
+### New Team Member Onboarding
+
+```bash
+# They receive .env.example
+$ cp .env.example .env
+# Fill in credentials
+
+# Propagate to all worktrees
+$ wt sync
+```
+
+### Environment-Specific Sync
+
+For different environments (dev, staging, prod):
+
+```bash
+# .wtconfig  
+WT_ENV_FILE=".env.development"
+```
+
+```bash
+$ wt sync  # Syncs .env.development to all worktrees
+```
+
+### Sync After Secret Rotation
+
+```bash
+# API keys rotated, update primary .env
+$ vim ~/myapp/.env
+
+# Sync to all active worktrees
+$ wt sync
+
+# Restart all dev servers
+$ wt dev feature/api &
+$ wt dev feature/ui &
+```
+
+## Integration with Other Commands
+
+### After Creating New Worktree
+
+`wt new` automatically copies `.env`, but if you update it later:
+
+```bash
+$ wt new feature/test
+[ok] .env copied to ~/worktrees/myapp/feature-test/.env
+
+# Later, .env changes in primary
+$ vim ~/myapp/.env
+
+# Update the specific worktree
+$ wt sync feature/test
+```
+
+### Before Running Dev Server
+
+```bash
+# Ensure env is up-to-date
+$ wt sync feature/api
+$ wt dev feature/api
+```
+
+### Batch Update All Worktrees
+
+```bash
+# Update .env in primary
+$ cd ~/myapp
+$ echo "FEATURE_FLAG_NEW=true" >> .env
+
+# Sync to all worktrees
+$ wt sync
+
+# Verify changes
+$ wt status
+```
+
+## File Permissions
+
+The copied `.env` file inherits permissions from the source:
+
+```bash
+$ ls -la ~/myapp/.env
+-rw-------  1 user  staff  250 Jan 15 10:30 .env
+
+$ wt sync feature/api
+
+$ ls -la ~/worktrees/myapp/feature-api/.env  
+-rw-------  1 user  staff  250 Jan 15 10:35 .env
+```
+
+## Differences from Manual Copy
+
+| Method | wt sync | Manual cp |
+|--------|---------|------------|
+| **Target path calculation** | Automatic (respects WT_ENV_FILE) | Manual |
+| **Multiple worktrees** | Single command | Loop required |
+| **Primary exclusion** | Automatic | Manual check needed |
+| **Directory creation** | Automatic | Manual mkdir needed |
+| **Feedback** | Success/warning messages | Silent |
+
+## Exit Codes
+
+| Code | Meaning |
+|------|----------|
+| 0 | Success (files synced or source not found) |
+| 1 | Worktree not found (when branch specified) |
+| 2 | Ambiguous match (multiple worktrees matched) |
+
+## See Also
+
+- [wt new](/commands/new) - Creates worktrees with automatic .env copy
+- [wt status](/commands/status) - View worktree status after sync
+- [wt dev](/commands/dev) - Run dev server with updated environment

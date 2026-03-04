@@ -1,0 +1,287 @@
+---
+title: .wtconfig File
+description: Configure wt CLI behavior with the .wtconfig file
+---
+
+The `.wtconfig` file allows you to customize how the `wt` CLI tool behaves in your repository. This optional configuration file should be placed in your repository root.
+
+## File Location
+
+The `.wtconfig` file is automatically detected in the following order:
+
+1. Current repository root (from `git rev-parse --show-toplevel`)
+2. Primary worktree root (if different from current repository)
+
+The file is sourced as a shell script, so you can use standard bash syntax.
+
+<Info>
+The `.wtconfig` file is optional. If not present, `wt` will use intelligent defaults based on your project structure.
+</Info>
+
+## Configuration Variables
+
+### WT_WEB_DIR
+
+Specifies the directory containing your `package.json` file, relative to the repository root.
+
+**Type:** `string`  
+**Default:** Auto-detected (repository root or first subdirectory with `package.json`)
+
+<CodeGroup>
+```bash Root Directory
+# package.json is at repo root
+WT_WEB_DIR="."
+```
+
+```bash Subdirectory
+# package.json is in a subdirectory
+WT_WEB_DIR="web"
+```
+
+```bash Monorepo
+# package.json is in apps/frontend
+WT_WEB_DIR="apps/frontend"
+```
+</CodeGroup>
+
+**Detection Logic** (from `detect_package_rel` around line 260):
+
+1. If `WT_WEB_DIR` is set and valid, use it
+2. Check for `package.json` in repository root
+3. Search first-level subdirectories for `package.json`
+4. Fail if no `package.json` found
+
+<Warning>
+Absolute paths in `WT_WEB_DIR` are converted to relative paths. Paths outside the repository will trigger a warning.
+</Warning>
+
+### WT_BASE_DIR
+
+Defines the base directory where worktrees are created.
+
+**Type:** `string`  
+**Default:** `$HOME/worktrees/<repo-name>`
+
+<CodeGroup>
+```bash Default Location
+# Worktrees stored in ~/worktrees/my-project
+# WT_BASE_DIR not set - uses default
+```
+
+```bash Custom Location
+# Store worktrees in a custom directory
+WT_BASE_DIR="$HOME/dev/worktrees/my-project"
+```
+
+```bash Project-Specific
+# Store worktrees alongside the repository
+WT_BASE_DIR="$HOME/projects/my-project-worktrees"
+```
+</CodeGroup>
+
+**Worktree Naming:**
+
+Worktrees are created as subdirectories using slugified branch names:
+
+```bash
+# Branch: feature/new-ui
+# Worktree: $WT_BASE_DIR/feature-new-ui
+
+# Branch: fix/bug-123
+# Worktree: $WT_BASE_DIR/fix-bug-123
+```
+
+### WT_ENV_FILE
+
+Specifies the path to your environment file, relative to the repository root.
+
+**Type:** `string`  
+**Default:** `.env` in the same directory as `package.json`
+
+<CodeGroup>
+```bash Default
+# Uses .env next to package.json
+# WT_ENV_FILE not set - uses default
+```
+
+```bash Custom Path
+# Environment file in a subdirectory
+WT_ENV_FILE="config/.env.local"
+```
+
+```bash Monorepo
+# Environment file in specific app
+WT_ENV_FILE="apps/frontend/.env"
+```
+</CodeGroup>
+
+<Warning>
+`WT_ENV_FILE` must be a relative path. Absolute paths will cause an error.
+</Warning>
+
+**Environment File Behavior:**
+
+- Copied from primary worktree to new worktrees during `wt new`
+- Synced to worktrees using `wt sync`
+- Warning displayed if source file not found (non-fatal)
+
+## Complete Examples
+
+<Accordion title="Standard Project">
+```bash .wtconfig
+# Standard single-package project
+# package.json at repository root
+
+WT_WEB_DIR="."
+WT_BASE_DIR="$HOME/worktrees/my-app"
+WT_ENV_FILE=".env"
+```
+
+**Structure:**
+```
+my-app/
+├── .wtconfig
+├── .env
+├── package.json
+└── src/
+```
+</Accordion>
+
+<Accordion title="Web Subdirectory">
+```bash .wtconfig
+# Web application in subdirectory
+
+WT_WEB_DIR="web"
+WT_BASE_DIR="$HOME/worktrees/my-project"
+WT_ENV_FILE="web/.env"
+```
+
+**Structure:**
+```
+my-project/
+├── .wtconfig
+├── docs/
+└── web/
+    ├── .env
+    ├── package.json
+    └── src/
+```
+</Accordion>
+
+<Accordion title="Monorepo Configuration">
+```bash .wtconfig
+# Monorepo with multiple apps
+# Configure for the main frontend app
+
+WT_WEB_DIR="apps/frontend"
+WT_BASE_DIR="$HOME/worktrees/monorepo"
+WT_ENV_FILE="apps/frontend/.env.local"
+```
+
+**Structure:**
+```
+monorepo/
+├── .wtconfig
+├── packages/
+└── apps/
+    ├── frontend/
+    │   ├── .env.local
+    │   ├── package.json
+    │   └── src/
+    └── backend/
+        └── package.json
+```
+</Accordion>
+
+<Accordion title="Custom Worktree Location">
+```bash .wtconfig
+# Store worktrees on a different drive
+# Useful for large projects or SSD optimization
+
+WT_WEB_DIR="."
+WT_BASE_DIR="/mnt/data/worktrees/my-app"
+WT_ENV_FILE=".env.development"
+```
+</Accordion>
+
+## Setup Context
+
+When you run any `wt` command, the tool automatically sets up the repository context using the `setup_repo_context` function (around line 307):
+
+```bash
+1. Detect git repository root
+2. Find primary worktree path
+3. Look for .wtconfig file
+4. Source .wtconfig if present
+5. Detect package.json location
+6. Set BASE_DIR and ENV paths
+```
+
+## Best Practices
+
+<Card title="Commit .wtconfig" icon="git">
+Commit the `.wtconfig` file to version control so all team members use consistent settings.
+</Card>
+
+<Card title="Use Relative Paths" icon="folder">
+Always use relative paths for `WT_WEB_DIR` and `WT_ENV_FILE` to ensure portability across different machines.
+</Card>
+
+<Card title="Document Custom Paths" icon="book">
+If using non-standard locations, add comments in `.wtconfig` explaining the structure.
+</Card>
+
+<Card title="Team Consistency" icon="users">
+Keep `WT_BASE_DIR` unset (use default) unless there's a specific reason to customize it, allowing team members to choose their own worktree locations.
+</Card>
+
+## Troubleshooting
+
+<AccordionGroup>
+<Accordion title="Warning: WT_WEB_DIR package.json not found">
+The configured `WT_WEB_DIR` doesn't contain a `package.json` file.
+
+**Solution:**
+- Verify the path is correct relative to repo root
+- Check that `package.json` exists at that location
+- Remove `WT_WEB_DIR` to use auto-detection
+</Accordion>
+
+<Accordion title="Error: WT_ENV_FILE must be relative">
+You specified an absolute path for `WT_ENV_FILE`.
+
+**Solution:**
+```bash
+# Wrong
+WT_ENV_FILE="/home/user/project/.env"
+
+# Correct
+WT_ENV_FILE=".env"
+WT_ENV_FILE="config/.env.local"
+```
+</Accordion>
+
+<Accordion title="Error: Cannot find package.json">
+No `package.json` found in repo root or first-level subdirectories.
+
+**Solution:**
+- Add a `package.json` to your project
+- Set `WT_WEB_DIR` to point to the correct subdirectory
+- Ensure you're running the command inside a git repository
+</Accordion>
+
+<Accordion title="Warning: Source env file not found">
+The `.env` file specified by `WT_ENV_FILE` doesn't exist.
+
+**Solution:**
+- Create the `.env` file in the primary worktree
+- Update `WT_ENV_FILE` to point to the correct file
+- This is a warning, not an error - `wt` will continue without copying the file
+</Accordion>
+</AccordionGroup>
+
+## Related Commands
+
+- [`wt new`](/commands/new) - Creates new worktrees using these settings
+- [`wt sync`](/commands/sync) - Syncs environment files to worktrees
+- [`wt dev`](/commands/dev) - Runs dev server using package detection

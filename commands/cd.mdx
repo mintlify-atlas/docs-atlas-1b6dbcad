@@ -1,0 +1,213 @@
+---
+title: "wt cd"
+description: "Navigate to a worktree by branch name"
+---
+
+## Overview
+
+The `wt cd` command quickly navigates to a worktree by specifying its branch name, slug, or directory name. It supports fuzzy matching and interactive selection.
+
+## Syntax
+
+```bash
+wt cd [branch]
+```
+
+<ParamField path="branch" type="string">
+  Branch name, slug, or directory name to navigate to. If omitted, launches interactive fzf picker.
+</ParamField>
+
+## Branch Matching
+
+The command accepts multiple formats:
+
+### 1. Exact Branch Name
+
+```bash
+wt cd feature/user-auth
+```
+
+Matches the branch `feature/user-auth`.
+
+### 2. Slugified Name
+
+```bash
+wt cd feature-user-auth
+```
+
+Matches `feature/user-auth` (slashes converted to hyphens).
+
+### 3. Directory Name
+
+```bash
+wt cd feature-user-auth
+```
+
+Matches worktree in directory `~/worktrees/myapp/feature-user-auth`.
+
+## Interactive Mode
+
+When no branch is specified and `fzf` is installed:
+
+```bash
+$ wt cd
+```
+
+**Interactive Display:**
+```
+> wt cd>
+  main
+  feature/api
+  feature/user-auth
+  bugfix/login
+  3/4
+```
+
+Use arrow keys to select, Enter to confirm.
+
+## Examples
+
+### Navigate by Branch Name
+
+```bash
+$ wt cd feature/api
+$ pwd
+~/worktrees/myapp/feature-api
+```
+
+### Navigate by Slug
+
+```bash
+$ wt cd team-alice-feature
+$ pwd
+~/worktrees/myapp/team-alice-feature
+```
+
+### Interactive Selection
+
+```bash
+$ wt cd
+# Opens fzf picker
+# Select branch with arrow keys + Enter
+$ pwd
+~/worktrees/myapp/feature-user-auth
+```
+
+## Ambiguous Matches
+
+If multiple worktrees match the query:
+
+```bash
+$ wt cd feature
+[error] Ambiguous branch/worktree selector: feature
+[warn] Matched worktrees:
+  - feature/api (~/worktrees/myapp/feature-api)
+  - feature/auth (~/worktrees/myapp/feature-auth)
+  - feature/user-profile (~/worktrees/myapp/feature-user-profile)
+```
+
+Provide a more specific selector to resolve the ambiguity.
+
+## No Match Found
+
+If no worktree matches the query:
+
+```bash
+$ wt cd nonexistent
+[error] No worktree found for: nonexistent
+[warn] Did you mean:
+  - feature/new-feature
+  - hotfix/urgent
+```
+
+Or if no suggestions found:
+
+```bash
+$ wt cd xyz
+[error] No worktree found for: xyz
+[warn] Available branches:
+  - main
+  - feature/api
+  - bugfix/auth
+```
+
+## Smart Suggestions
+
+The command provides intelligent suggestions based on:
+
+1. **Substring matching**: Branches containing the query
+2. **Slug matching**: Slugified branch names containing the query  
+3. **Prefix matching**: If query contains `/`, suggests branches with the same prefix
+
+### Example
+
+```bash
+$ wt cd feat
+[error] No worktree found for: feat
+[warn] Did you mean:
+  - feature/api
+  - feature/auth
+  - feature/user-profile
+```
+
+## Shell Integration
+
+The `wt cd` command requires shell integration from `wt install` to actually change directories.
+
+### How It Works
+
+1. `wt cd_path <branch>` outputs the absolute path
+2. The shell wrapper function captures the output
+3. Runs `cd` to the path in your current shell
+
+**Without shell integration:**
+```bash
+$ ./wt cd feature/api
+~/worktrees/myapp/feature-api
+$ pwd
+/Users/dev/current-directory  # Still in original directory
+```
+
+**With shell integration:**
+```bash
+$ wt cd feature/api
+$ pwd
+~/worktrees/myapp/feature-api  # Changed directory
+```
+
+<Note>
+  Run `wt install` to set up the shell integration, then restart your shell or run `source ~/.zshrc`.
+</Note>
+
+## Implementation Details
+
+Internally, `wt cd` calls `cmd_cd_path()` which:
+
+1. Resolves the branch argument (interactive or provided)
+2. Calls `resolve_worktree_record()` to find the matching worktree
+3. Outputs the absolute path
+4. The shell wrapper uses this path to `cd`
+
+## Exit Codes
+
+| Code | Meaning |
+|------|----------|
+| 0 | Success (worktree found and path output) |
+| 1 | No worktree found or user cancelled selection |
+| 2 | Ambiguous match (multiple worktrees matched) |
+
+## Comparison with wt ls
+
+| Feature | wt cd | wt ls |
+|---------|-------|-------|
+| **Purpose** | Navigate to specific worktree | Browse and navigate all worktrees |
+| **Accepts argument** | Yes (branch name) | No |
+| **Shows status** | No | Yes (clean/dirty, commit hash) |
+| **Interactive mode** | Branch list only | Full worktree details |
+| **Best for** | Quick navigation to known branch | Exploring and checking status |
+
+## See Also
+
+- [wt ls](/commands/ls) - Interactive worktree browser with status
+- [wt new](/commands/new) - Create new worktrees
+- [wt status](/commands/status) - View status of all worktrees

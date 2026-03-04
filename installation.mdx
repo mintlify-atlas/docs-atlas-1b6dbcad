@@ -1,0 +1,191 @@
+---
+title: Installation
+description: Install and set up the wt CLI tool for Git worktree management
+---
+
+## Prerequisites
+
+Before installing `wt`, ensure you have the following:
+
+<CardGroup cols={2}>
+  <Card title="Git" icon="git-alt">
+    Required for worktree management
+  </Card>
+  <Card title="fzf" icon="terminal">
+    Recommended for interactive selection (auto-installed)
+  </Card>
+</CardGroup>
+
+<Note>
+  If `fzf` is not installed, `wt install` will automatically attempt to install it during setup.
+</Note>
+
+## Installation Methods
+
+<Steps>
+  <Step title="Clone the repository">
+    Clone the `wt` repository to your home directory:
+    
+    ```bash
+    cd ~
+    git clone https://github.com/uglyus-daniel/wt.git
+    cd wt
+    ```
+  </Step>
+
+  <Step title="Make the script executable">
+    Set executable permissions on the `wt` script:
+    
+    ```bash
+    chmod +x wt
+    ```
+  </Step>
+
+  <Step title="Run the installer">
+    Execute the installation command:
+    
+    ```bash
+    ./wt install
+    ```
+    
+    This command performs three key tasks:
+    - Copies the script to `~/wt/wt`
+    - Registers shell functions in `~/.zshrc`
+    - Attempts to auto-install `fzf` if not present
+  </Step>
+
+  <Step title="Apply the changes">
+    Source your shell configuration or open a new terminal:
+    
+    ```bash
+    source ~/.zshrc
+    ```
+  </Step>
+
+  <Step title="Verify installation">
+    Confirm `wt` is working correctly:
+    
+    ```bash
+    wt help
+    ```
+  </Step>
+</Steps>
+
+## What Gets Installed
+
+### Script Location
+
+The `wt` script is installed to `~/wt/wt` and can be invoked from anywhere in your terminal.
+
+### Shell Integration
+
+The installer adds a shell function to your `~/.zshrc` that enables special functionality for certain commands:
+
+```bash wt:840-890
+# wt cd / wt new / wt ls 지원을 위한 shell 함수
+wt() {
+  if [ "$1" = "cd" ]; then
+    local target_path
+    target_path=$("$HOME/wt/wt" cd_path "${@:2}") && cd "$target_path"
+  elif [ "$1" = "new" ]; then
+    local target_path
+    target_path=$("$HOME/wt/wt" new "${@:2}") && [ -n "$target_path" ] && cd "$target_path"
+  elif [ "$1" = "ls" ] && { [ $# -eq 1 ] || [ "${2:-}" = "--fzf" ] || [ "${2:-}" = "-f" ]; }; then
+    local target_path
+    target_path=$("$HOME/wt/wt" ls "${@:2}" --path-only) && [ -n "$target_path" ] && cd "$target_path"
+  else
+    "$HOME/wt/wt" "$@"
+  fi
+}
+```
+
+This shell function enables:
+- `wt cd <branch>` - Changes directory to the worktree
+- `wt new <branch>` - Creates worktree and changes to it
+- `wt ls` - Interactive selection with automatic directory change
+
+<Warning>
+  The `wt cd` command requires the shell function and will not work without running `wt install` first.
+</Warning>
+
+## fzf Installation
+
+The `fzf` tool provides interactive fuzzy-finding capabilities for `wt ls`, `wt rm`, and `wt cd` commands.
+
+### Automatic Installation
+
+During `wt install`, the script attempts to install `fzf` automatically based on your system:
+
+<CodeGroup>
+```bash macOS
+# Installed via Homebrew
+brew install fzf
+```
+
+```bash Ubuntu/Debian
+# Installed via apt-get
+sudo apt-get install -y fzf
+```
+
+```bash Other Systems
+# Installed from GitHub to ~/.fzf
+git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+~/.fzf/install --all --no-update-rc
+```
+</CodeGroup>
+
+### Manual Installation
+
+If automatic installation fails, install `fzf` manually:
+
+```bash
+# Visit the fzf installation guide
+https://github.com/junegunn/fzf#installation
+```
+
+### Using wt Without fzf
+
+You can still use `wt` without `fzf` by using the `--plain` flag:
+
+```bash
+# Display plain text list instead of interactive selector
+wt ls --plain
+```
+
+## Uninstallation
+
+To remove `wt` from your system:
+
+<Steps>
+  <Step title="Remove the shell function">
+    Edit your `~/.zshrc` and remove the section between:
+    ```bash
+    # >>> wt setup >>>
+    # ...
+    # <<< wt setup <<<
+    ```
+  </Step>
+
+  <Step title="Delete the script">
+    ```bash
+    rm -rf ~/wt
+    ```
+  </Step>
+
+  <Step title="Reload your shell">
+    ```bash
+    source ~/.zshrc
+    ```
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Learn the basics and create your first worktree
+  </Card>
+  <Card title="Commands" icon="terminal" href="/commands/new">
+    Explore all available commands
+  </Card>
+</CardGroup>

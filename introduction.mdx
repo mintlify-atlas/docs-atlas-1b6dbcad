@@ -1,0 +1,174 @@
+---
+title: Introduction
+description: Universal Git worktree management script with automatic environment sync and package manager detection
+---
+
+<div className="py-16 bg-gradient-to-br from-[#228B22] to-[#32CD32] dark:from-[#1a5c1a] dark:to-[#228B22]">
+  <div className="max-w-5xl mx-auto px-6">
+    <div className="grid lg:grid-cols-12 gap-8 items-center">
+      <div className="lg:col-span-7">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+          Git worktree management made simple
+        </h1>
+        <p className="text-base sm:text-lg text-white/90 max-w-2xl mb-8">
+          Stop juggling branches with git stash. Work on multiple features simultaneously with automatic environment sync, dependency installation, and smart package manager detection.
+        </p>
+        <div className="flex flex-wrap gap-4">
+          <a
+            href="/quickstart"
+            className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-white text-[#228B22] font-semibold hover:bg-gray-100 transition-colors"
+          >
+            Get Started
+          </a>
+          <a
+            href="/commands/new"
+            className="inline-flex items-center justify-center px-6 py-3 rounded-lg border-2 border-white/30 bg-white/10 text-white font-semibold hover:bg-white/20 transition-colors"
+          >
+            Explore Commands
+          </a>
+        </div>
+      </div>
+      <div className="lg:col-span-5 hidden lg:block">
+        <div className="bg-[#1a1d27] dark:bg-[#0f1117] rounded-xl p-6 border border-white/10">
+          <div className="font-mono text-sm">
+            <div className="text-gray-400"># Create a new worktree</div>
+            <div className="text-white mt-2">$ wt new feature/auth dev</div>
+            <div className="text-[#98FB98] mt-4">[ok] Worktree ready</div>
+            <div className="text-gray-400 mt-1">/home/user/worktrees/myapp/feature-auth</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mb-4">
+    Quick start
+  </h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">
+    Get up and running with wt in minutes
+  </p>
+  
+  <Steps>
+    <Step title="Install wt">
+      Clone the repository and run the installation script:
+      
+      ```bash
+      cd ~
+      git clone https://github.com/uglyus-daniel/wt.git
+      cd wt
+      chmod +x wt
+      ./wt install
+      source ~/.zshrc
+      ```
+      
+      The `wt install` command handles script installation, zsh function registration, and automatic fzf setup.
+    </Step>
+    
+    <Step title="Create your first worktree">
+      Navigate to any git repository and create a new worktree:
+      
+      ```bash
+      cd ~/your-project
+      wt new feature/user-auth dev
+      ```
+      
+      This creates a new worktree based on the `dev` branch, automatically:
+      - Creates the branch if it doesn't exist
+      - Copies your `.env` file
+      - Installs dependencies with the correct package manager
+      - Changes directory to the new worktree
+    </Step>
+    
+    <Step title="Start development">
+      Run your development server in the new worktree:
+      
+      ```bash
+      wt dev
+      ```
+      
+      The `dev` command automatically detects your package manager (bun, pnpm, yarn, or npm) and runs the appropriate dev command.
+    </Step>
+  </Steps>
+</div>
+
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mb-4">
+    Key features
+  </h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">
+    Everything you need for efficient worktree management
+  </p>
+  
+  <CardGroup cols={2}>
+    <Card title="Automatic detection" icon="radar" href="/configuration/package-managers">
+      Detects repository root, package.json location, and package manager automatically
+    </Card>
+    <Card title="Environment sync" icon="arrows-rotate" href="/commands/sync">
+      Automatically copies and syncs .env files across all worktrees
+    </Card>
+    <Card title="Interactive selection" icon="list-check" href="/commands/ls">
+      Browse and select worktrees with fzf integration for seamless navigation
+    </Card>
+    <Card title="Smart dependency management" icon="box-open" href="/configuration/package-managers">
+      Detects and uses bun, pnpm, yarn, or npm with frozen lockfiles
+    </Card>
+    <Card title="Colored output" icon="palette" href="/commands/status">
+      Clear, color-coded terminal output for better visibility
+    </Card>
+    <Card title="Shell integration" icon="terminal" href="/installation">
+      Native cd support through zsh function integration
+    </Card>
+  </CardGroup>
+</div>
+
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mb-4">
+    Explore by command
+  </h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">
+    Complete reference for all wt commands
+  </p>
+  
+  <CardGroup cols={2}>
+    <Card title="wt new" icon="plus" href="/commands/new">
+      Create new worktrees with automatic setup
+    </Card>
+    <Card title="wt ls" icon="list" href="/commands/ls">
+      List and interactively select worktrees
+    </Card>
+    <Card title="wt cd" icon="folder-open" href="/commands/cd">
+      Navigate to worktree directories
+    </Card>
+    <Card title="wt rm" icon="trash" href="/commands/rm">
+      Remove worktrees with safety checks
+    </Card>
+    <Card title="wt dev" icon="code" href="/commands/dev">
+      Run development servers in worktrees
+    </Card>
+    <Card title="wt sync" icon="sync" href="/commands/sync">
+      Sync environment files across worktrees
+    </Card>
+    <Card title="wt status" icon="circle-info" href="/commands/status">
+      View git status for all worktrees
+    </Card>
+  </CardGroup>
+</div>
+
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <div className="bg-gradient-to-br from-[#228B22] to-[#32CD32] dark:from-[#1a5c1a] dark:to-[#228B22] rounded-2xl p-8 sm:p-12">
+    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
+      Ready to streamline your workflow?
+    </h2>
+    <p className="text-base sm:text-lg text-white/90 mb-8 max-w-2xl">
+      Install wt and start working on multiple branches simultaneously without the git stash juggling.
+    </p>
+    <a
+      href="/installation"
+      className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-white text-[#228B22] font-semibold hover:bg-gray-100 transition-colors"
+    >
+      Install Now
+    </a>
+  </div>
+</div>

@@ -1,0 +1,549 @@
+---
+title: Troubleshooting
+description: Common issues and solutions when using wt
+---
+
+This guide covers common issues you may encounter when using `wt` and their solutions.
+
+## Common Errors and Solutions
+
+<AccordionGroup>
+  <Accordion title="fzf not found">
+    **Error Message:**
+    ```bash
+    [warn] fzf is not installed. Falling back to plain list output.
+    ```
+
+    or
+
+    ```bash
+    [error] fzf is not installed.
+    ```
+
+    **Cause:** The `fzf` command-line fuzzy finder is not installed on your system.
+
+    **Solution:**
+
+    Run the installer which will attempt to install fzf automatically:
+    ```bash
+    wt install
+    ```
+
+    The installer tries these methods in order:
+    1. **macOS with Homebrew:**
+       ```bash
+       brew install fzf
+       ```
+    
+    2. **Ubuntu/Debian:**
+       ```bash
+       sudo apt-get install -y fzf
+       ```
+    
+    3. **Manual installation:**
+       ```bash
+       git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+       ~/.fzf/install --all --no-update-rc
+       ```
+
+    **Workaround without fzf:**
+
+    You can still use `wt` without fzf by using non-interactive modes:
+    - `wt ls --plain` - Shows plain text list of worktrees
+    - `wt cd <branch>` - Specify the branch name directly
+    - `wt rm <branch>` - Specify the branch name directly
+  </Accordion>
+
+  <Accordion title="Dirty worktree warnings">
+    **Error Message:**
+    ```bash
+    [warn] Dirty working tree detected: /path/to/worktree
+    Remove anyway? [y/N]:
+    ```
+
+    **Cause:** You're trying to remove a worktree that has uncommitted changes.
+
+    **Solution:**
+
+    Check what changes exist:
+    ```bash
+    wt status
+    ```
+
+    Then choose one of these options:
+
+    1. **Commit or stash changes:**
+       ```bash
+       cd /path/to/worktree
+       git add .
+       git commit -m "Save work"
+       ```
+
+    2. **Force remove (lose changes):**
+       ```bash
+       wt rm --force feature/branch-name
+       ```
+
+    3. **Cancel and keep the worktree:**
+       ```bash
+       # Answer 'N' when prompted
+       ```
+
+    **Non-interactive mode:**
+
+    In non-interactive mode (scripts, CI), you must use `--force`:
+    ```bash
+    wt rm --force feature/branch-name
+    ```
+
+    Otherwise you'll see:
+    ```bash
+    [error] Use --force to remove a dirty worktree in non-interactive mode.
+    ```
+  </Accordion>
+
+  <Accordion title="Path conflicts">
+    **Error Message:**
+    ```bash
+    [error] Target path already exists: /path/to/worktree
+    ```
+
+    **Cause:** You're trying to create a worktree, but a directory with that name already exists.
+
+    **Solution:**
+
+    1. **Check if it's an old worktree:**
+       ```bash
+       git worktree list
+       ```
+
+       If it's listed, use git to remove it:
+       ```bash
+       git worktree remove /path/to/worktree
+       ```
+
+    2. **Remove the directory manually:**
+       ```bash
+       rm -rf /path/to/worktree
+       ```
+
+    3. **Use a different base directory:**
+       
+       Create a `.wtconfig` in your repo root:
+       ```bash
+       WT_BASE_DIR="$HOME/worktrees/myproject-new"
+       ```
+
+    **Related Error:**
+    ```bash
+    [warn] Branch 'feature/test' is already checked out in: /path/to/existing
+    ```
+
+    This means the branch already has a worktree. The command will return the existing path instead of creating a new one.
+  </Accordion>
+
+  <Accordion title="Package manager detection issues">
+    **Warning Message:**
+    ```bash
+    [warn] No lockfile found in /path/to/package. Falling back to npm install.
+    ```
+
+    **Cause:** The tool couldn't find a lock file to determine which package manager to use.
+
+    **Solution:**
+
+    1. **Commit your lock file:**
+       
+       Make sure your lock file is tracked in git:
+       ```bash
+       git add pnpm-lock.yaml  # or yarn.lock, package-lock.json, bun.lockb
+       git commit -m "Add lock file"
+       ```
+
+    2. **Generate a lock file:**
+       
+       If you don't have a lock file, create one:
+       ```bash
+       # For pnpm
+       pnpm install
+       
+       # For yarn
+       yarn install
+       
+       # For npm
+       npm install
+       
+       # For bun
+       bun install
+       ```
+
+    3. **Verify package.json location:**
+       
+       If your `package.json` is in a subdirectory, configure `.wtconfig`:
+       ```bash
+       WT_WEB_DIR="apps/web"
+       ```
+
+    **Lock file detection order:**
+    1. `bun.lockb` → uses `bun install`
+    2. `pnpm-lock.yaml` → uses `pnpm install --frozen-lockfile`
+    3. `yarn.lock` → uses `yarn install --frozen-lockfile`
+    4. `package-lock.json` → uses `npm ci`
+    5. None found → falls back to `npm install`
+  </Accordion>
+
+  <Accordion title="Environment sync problems">
+    **Warning Message:**
+    ```bash
+    [warn] Source env file not found: /path/to/.env
+    ```
+
+    **Cause:** The tool can't find the `.env` file to copy to worktrees.
+
+    **Solution:**
+
+    1. **Create the environment file:**
+       ```bash
+       cd /path/to/primary/worktree
+       touch .env
+       # Add your environment variables
+       ```
+
+    2. **Check your package directory structure:**
+       
+       By default, `wt` looks for `.env` in the same directory as `package.json`.
+       
+       If your structure is different:
+       ```
+       repo/
+       ├── apps/
+       │   └── web/
+       │       ├── package.json
+       │       └── .env.local    # Different name
+       ```
+       
+       Configure in `.wtconfig`:
+       ```bash
+       WT_WEB_DIR="apps/web"
+       WT_ENV_FILE="apps/web/.env.local"
+       ```
+
+    3. **Verify the path is relative:**
+       ```bash
+       [error] WT_ENV_FILE must be relative to the repo root.
+       ```
+       
+       Fix: Use relative paths, not absolute:
+       ```bash
+       # ✅ Correct
+       WT_ENV_FILE="apps/web/.env"
+       
+       # ❌ Wrong
+       WT_ENV_FILE="/Users/me/project/apps/web/.env"
+       ```
+
+    **Success Message:**
+    ```bash
+    [ok] .env copied to /path/to/worktree/.env
+    [ok] Synced env file to 3 worktree(s).
+    ```
+  </Accordion>
+
+  <Accordion title="Not in a git repository">
+    **Error Message:**
+    ```bash
+    [error] Run this command inside a git repository.
+    ```
+
+    **Cause:** You're trying to run `wt` outside of a git repository.
+
+    **Solution:**
+
+    1. **Navigate to your git repository:**
+       ```bash
+       cd /path/to/your/repo
+       wt ls
+       ```
+
+    2. **Initialize a git repository:**
+       ```bash
+       git init
+       ```
+
+    3. **Clone the repository:**
+       ```bash
+       git clone <repository-url>
+       cd <repository-name>
+       ```
+
+    **Note:** The `wt` command works from any directory within a git repository, not just the root.
+  </Accordion>
+
+  <Accordion title="Required command not found">
+    **Error Message:**
+    ```bash
+    [error] Required command not found: git
+    ```
+
+    or
+
+    ```bash
+    [error] Required command not found: pnpm
+    ```
+
+    **Cause:** A required command-line tool is not installed or not in your PATH.
+
+    **Solution:**
+
+    1. **Install git (required):**
+       ```bash
+       # macOS
+       brew install git
+       
+       # Ubuntu/Debian
+       sudo apt-get install git
+       ```
+
+    2. **Install the detected package manager:**
+       
+       If the tool detected a lock file but the package manager isn't installed:
+       ```bash
+       # For pnpm
+       npm install -g pnpm
+       
+       # For yarn
+       npm install -g yarn
+       
+       # For bun
+       curl -fsSL https://bun.sh/install | bash
+       ```
+
+    3. **Check your PATH:**
+       ```bash
+       echo $PATH
+       which git
+       which pnpm
+       ```
+  </Accordion>
+
+  <Accordion title="Cannot find package.json">
+    **Error Message:**
+    ```bash
+    [error] Cannot find package.json in repo root or 1-depth subdirectories.
+    ```
+
+    **Cause:** The tool couldn't locate a `package.json` file in your repository.
+
+    **Solution:**
+
+    1. **For non-Node.js projects:**
+       
+       The `wt` tool is designed for Node.js projects. For other project types, you can still use git worktrees directly:
+       ```bash
+       git worktree add ../feature-branch
+       ```
+
+    2. **Specify the package directory:**
+       
+       If your `package.json` is in a nested directory:
+       ```
+       repo/
+       ├── src/
+       ├── apps/
+       │   └── frontend/
+       │       └── package.json
+       ```
+       
+       Create `.wtconfig`:
+       ```bash
+       WT_WEB_DIR="apps/frontend"
+       ```
+
+    3. **Check your directory structure:**
+       ```bash
+       find . -name "package.json" -type f
+       ```
+
+    **Warning Message:**
+    ```bash
+    [warn] WT_WEB_DIR package.json not found at 'apps/web'; fallback to auto-detect.
+    ```
+    
+    This means the configured `WT_WEB_DIR` doesn't contain a `package.json`. The tool will try to auto-detect instead.
+  </Accordion>
+
+  <Accordion title="Ambiguous branch selector">
+    **Error Message:**
+    ```bash
+    [error] Ambiguous branch/worktree selector: feature
+    [warn] Matched worktrees:
+      - feature/auth (/path/to/feature-auth)
+      - feature/dashboard (/path/to/feature-dashboard)
+    ```
+
+    **Cause:** Your query matches multiple branches.
+
+    **Solution:**
+
+    Use a more specific branch name:
+    ```bash
+    # Instead of:
+    wt cd feature
+    
+    # Use:
+    wt cd feature/auth
+    ```
+
+    Or use the interactive selector:
+    ```bash
+    wt cd  # Opens fzf to choose from all branches
+    ```
+  </Accordion>
+
+  <Accordion title="No worktree found for branch">
+    **Error Message:**
+    ```bash
+    [error] No worktree found for: feature/test
+    [warn] Did you mean:
+      - feature/test-auth
+      - feature/testing
+    ```
+
+    or
+
+    ```bash
+    [error] No worktree found for: feature/test
+    [warn] Available branches:
+      - main
+      - feature/auth
+      - bugfix/login
+    ```
+
+    **Cause:** The specified branch doesn't have a worktree.
+
+    **Solution:**
+
+    1. **Create the worktree:**
+       ```bash
+       wt new feature/test main
+       ```
+
+    2. **Use one of the suggested branches:**
+       ```bash
+       wt cd feature/test-auth
+       ```
+
+    3. **List all worktrees:**
+       ```bash
+       wt ls
+       ```
+  </Accordion>
+
+  <Accordion title="Cannot remove primary worktree">
+    **Error Message:**
+    ```bash
+    [error] Cannot remove the primary worktree: /path/to/main
+    ```
+
+    **Cause:** You're trying to remove the main/primary worktree of your repository.
+
+    **Solution:**
+
+    The primary worktree (where you originally cloned the repository) cannot be removed with `wt rm`. This is a safety feature.
+
+    To remove other worktrees:
+    ```bash
+    wt ls  # See which worktrees exist
+    wt rm feature/branch-name  # Remove a secondary worktree
+    ```
+
+    If you need to remove everything, delete the entire repository:
+    ```bash
+    rm -rf /path/to/repository
+    ```
+  </Accordion>
+
+  <Accordion title="Shell integration not working">
+    **Symptom:** The `wt cd` or `wt ls` commands don't change directories.
+
+    **Cause:** Shell functions haven't been loaded or aren't configured correctly.
+
+    **Solution:**
+
+    1. **Run the installer:**
+       ```bash
+       wt install
+       ```
+
+    2. **Reload your shell configuration:**
+       ```bash
+       source ~/.zshrc
+       ```
+       
+       Or open a new terminal window.
+
+    3. **Verify the function exists:**
+       ```bash
+       type wt
+       ```
+       
+       Should output:
+       ```
+       wt is a shell function from /Users/you/.zshrc
+       ```
+
+    4. **Check for conflicts:**
+       
+       Make sure you don't have another `wt` command:
+       ```bash
+       which wt
+       ```
+
+    5. **Manual setup:**
+       
+       If the installer doesn't work, add this to your `~/.zshrc` manually:
+       ```bash
+       wt() {
+         if [ "$1" = "cd" ]; then
+           local target_path
+           target_path=$("$HOME/wt/wt" cd_path "${@:2}") && cd "$target_path"
+         elif [ "$1" = "new" ]; then
+           local target_path
+           target_path=$("$HOME/wt/wt" new "${@:2}") && [ -n "$target_path" ] && cd "$target_path"
+         elif [ "$1" = "ls" ] && { [ $# -eq 1 ] || [ "${2:-}" = "--fzf" ] || [ "${2:-}" = "-f" ]; }; then
+           local target_path
+           target_path=$("$HOME/wt/wt" ls "${@:2}" --path-only) && [ -n "$target_path" ] && cd "$target_path"
+         else
+           "$HOME/wt/wt" "$@"
+         fi
+       }
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Getting Help
+
+If you encounter issues not covered here:
+
+1. **Check the command help:**
+   ```bash
+   wt help
+   ```
+
+2. **View all worktrees:**
+   ```bash
+   git worktree list
+   ```
+
+3. **Check git worktree documentation:**
+   ```bash
+   git worktree --help
+   ```
+
+4. **Report an issue:**
+   
+   Visit the GitHub repository and open an issue with:
+   - The command you ran
+   - The error message
+   - Your system information (OS, shell, git version)
+   - Your `.wtconfig` if applicable

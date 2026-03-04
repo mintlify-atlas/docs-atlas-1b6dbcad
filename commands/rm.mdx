@@ -1,0 +1,285 @@
+---
+title: "wt rm"
+description: "Remove a worktree safely"
+---
+
+## Overview
+
+The `wt rm` command removes a git worktree, including its directory and git tracking. It includes safety checks for dirty worktrees and the primary worktree.
+
+## Syntax
+
+```bash
+wt rm [-f|--force] [branch]
+```
+
+<ParamField path="branch" type="string">
+  Branch name, slug, or directory name of the worktree to remove. If omitted, launches interactive fzf picker.
+</ParamField>
+
+<ParamField path="-f, --force" type="flag">
+  Force removal even if the worktree has uncommitted changes (dirty state)
+</ParamField>
+
+## Interactive Mode
+
+When no branch is specified and `fzf` is installed:
+
+```bash
+$ wt rm
+```
+
+**Interactive Display:**
+```
+> wt rm>
+  feature/api       b2c3d4e  dirty   /Users/dev/worktrees/myapp/feature-api
+  bugfix/auth       c3d4e5f  clean   /Users/dev/worktrees/myapp/bugfix-auth
+  feature/profile   d4e5f6a  clean   /Users/dev/worktrees/myapp/feature-profile
+  3/3
+```
+
+<Note>
+  The primary worktree is automatically excluded from the removal list.
+</Note>
+
+After selection, you'll see a confirmation prompt:
+
+```
+Really remove 'feature/api' (~/worktrees/myapp/feature-api)? [y/N]:
+```
+
+## Examples
+
+### Remove Specific Worktree
+
+```bash
+$ wt rm feature/old-api
+[ok] Removed worktree: ~/worktrees/myapp/feature-old-api
+```
+
+### Interactive Removal with Confirmation
+
+```bash
+$ wt rm
+# Select in fzf: feature/api (dirty)
+Really remove 'feature/api' (~/worktrees/myapp/feature-api)? [y/N]: y
+[ok] Removed worktree: ~/worktrees/myapp/feature-api
+```
+
+### Force Remove Dirty Worktree
+
+```bash
+$ wt rm feature/api
+[warn] Dirty working tree detected: ~/worktrees/myapp/feature-api
+Remove anyway? [y/N]: y
+[ok] Removed worktree: ~/worktrees/myapp/feature-api
+```
+
+Or skip the prompt with `--force`:
+
+```bash
+$ wt rm --force feature/api
+[ok] Removed worktree: ~/worktrees/myapp/feature-api
+```
+
+### Remove by Slug
+
+```bash
+$ wt rm feature-old-api
+[ok] Removed worktree: ~/worktrees/myapp/feature-old-api
+```
+
+## Safety Checks
+
+### 1. Primary Worktree Protection
+
+The primary worktree cannot be removed:
+
+```bash
+$ wt rm main
+[error] Cannot remove the primary worktree: /Users/dev/myapp
+```
+
+### 2. Dirty Worktree Detection
+
+When uncommitted changes are detected:
+
+```bash
+$ wt rm feature/api
+[warn] Dirty working tree detected: ~/worktrees/myapp/feature-api
+Remove anyway? [y/N]:
+```
+
+Respond with:
+- `y`, `Y`, `yes`, or `YES`: Proceeds with forced removal
+- Any other input: Cancels the operation
+
+### 3. Interactive Confirmation
+
+When using interactive mode (even for clean worktrees):
+
+```bash
+Really remove 'feature/api' (~/worktrees/myapp/feature-api)? [y/N]:
+```
+
+This prevents accidental deletions.
+
+## Dirty State Handling
+
+A worktree is considered "dirty" if it has:
+- Uncommitted changes
+- Staged changes
+- Untracked files
+
+### Interactive Mode with Dirty Worktree
+
+```bash
+$ wt rm
+# Select dirty worktree
+[warn] Dirty working tree detected: ~/worktrees/myapp/feature-api
+Really remove 'feature/api' (~/worktrees/myapp/feature-api)? [y/N]: y
+[ok] Removed worktree: ~/worktrees/myapp/feature-api
+```
+
+Automatically applies `--force` if you confirm.
+
+### Non-Interactive Mode with Dirty Worktree
+
+```bash
+$ wt rm feature/api
+[warn] Dirty working tree detected: ~/worktrees/myapp/feature-api
+Remove anyway? [y/N]: n
+[info] Cancelled.
+```
+
+### Force Flag Bypasses Prompts
+
+```bash
+$ wt rm --force feature/api
+[ok] Removed worktree: ~/worktrees/myapp/feature-api
+```
+
+No prompts, removes immediately even if dirty.
+
+<Warning>
+  Using `--force` on a dirty worktree will permanently delete uncommitted changes. Make sure you don't need any work in that worktree!
+</Warning>
+
+## Ambiguous Matches
+
+If multiple worktrees match:
+
+```bash
+$ wt rm feature
+[error] Ambiguous branch/worktree selector: feature
+[warn] Matched worktrees:
+  - feature/api (~/worktrees/myapp/feature-api)
+  - feature/auth (~/worktrees/myapp/feature-auth)
+```
+
+Provide a more specific branch name.
+
+## No Match Found
+
+```bash
+$ wt rm nonexistent
+[error] No worktree found for: nonexistent
+[warn] Did you mean:
+  - feature/new-feature
+  - hotfix/urgent
+```
+
+Or shows available branches if no suggestions found.
+
+## What Gets Removed
+
+1. **Git worktree tracking**: Removes the worktree from git's internal tracking
+2. **Directory contents**: Recursively deletes the worktree directory and all its contents
+3. **Branch reference**: The branch remains in the repository but is no longer checked out
+
+<Note>
+  Removing a worktree does NOT delete the branch. The branch still exists and can be checked out again with `wt new <branch>`.
+</Note>
+
+## Non-Interactive Mode Requirements
+
+In non-interactive environments (scripts, CI/CD):
+
+```bash
+# Fails if dirty and no force flag
+$ wt rm feature/api < /dev/null
+[warn] Dirty working tree detected: ~/worktrees/myapp/feature-api
+[error] Use --force to remove a dirty worktree in non-interactive mode.
+```
+
+Always use `--force` in scripts:
+
+```bash
+wt rm --force feature/api
+```
+
+## Cancel Interactive Removal
+
+### Cancel fzf Selection
+
+Press `Esc` or `Ctrl-C` in the fzf picker:
+
+```bash
+$ wt rm
+# Press Esc
+$ echo $?
+1
+```
+
+### Cancel Confirmation Prompt
+
+Enter anything other than `y/Y/yes/YES`:
+
+```bash
+Really remove 'feature/api' (~/worktrees/myapp/feature-api)? [y/N]: n
+[info] Cancelled.
+```
+
+## Exit Codes
+
+| Code | Meaning |
+|------|----------|
+| 0 | Success (worktree removed) |
+| 1 | Error or user cancelled |
+| 2 | Ambiguous match (multiple worktrees matched) |
+
+## Common Workflows
+
+### Clean Up Old Feature Branches
+
+```bash
+# Review merged branches
+git branch --merged main | grep feature/
+
+# Remove their worktrees
+wt rm feature/old-feature-1
+wt rm feature/old-feature-2
+```
+
+### Interactive Cleanup Session
+
+```bash
+# Remove multiple worktrees one by one
+wt rm  # Select first
+wt rm  # Select second
+wt rm  # Select third
+```
+
+### Force Remove All Worktrees Matching Pattern
+
+```bash
+for branch in $(git branch | grep 'test/'); do
+  wt rm --force "$branch" 2>/dev/null || true
+done
+```
+
+## See Also
+
+- [wt new](/commands/new) - Create new worktrees
+- [wt ls](/commands/ls) - List all worktrees with status
+- [wt status](/commands/status) - Check for dirty worktrees before removal

@@ -1,0 +1,159 @@
+---
+title: "wt new"
+description: "Create a new worktree with automatic setup"
+---
+
+## Overview
+
+The `wt new` command creates a new git worktree with automatic dependency installation and environment setup. It intelligently handles both new and existing branches.
+
+## Syntax
+
+```bash
+wt new <branch> [base-branch]
+```
+
+<ParamField path="branch" type="string" required>
+  Name of the branch to create or checkout in the worktree
+</ParamField>
+
+<ParamField path="base-branch" type="string">
+  Base branch to create the new branch from. Defaults to the current HEAD branch of the primary worktree.
+</ParamField>
+
+## Behavior
+
+### For New Branches
+
+When the specified branch doesn't exist:
+
+1. Creates a new branch from `base-branch` (or current HEAD if not specified)
+2. Creates a worktree directory at `~/worktrees/<repo-name>/<branch-slug>`
+3. Copies `.env` file from the primary worktree
+4. Detects package manager (bun, pnpm, yarn, or npm) based on lockfiles
+5. Automatically runs dependency installation
+6. Changes directory to the new worktree (when using shell integration)
+
+### For Existing Branches
+
+When the branch already exists:
+
+- If already checked out in a worktree: displays warning and returns existing path
+- If not checked out: adds the existing branch to a new worktree
+- Checks if branch is behind remote and displays warning if outdated
+
+## Examples
+
+### Create New Feature Branch
+
+```bash
+wt new feature/user-auth
+```
+
+**Output:**
+```
+[info] Creating branch 'feature/user-auth' from 'main'
+[ok] .env copied to ~/worktrees/myapp/feature-user-auth/.env
+[info] Installing dependencies with pnpm in ~/worktrees/myapp/feature-user-auth
+[ok] Worktree ready: ~/worktrees/myapp/feature-user-auth
+```
+
+### Create Branch from Specific Base
+
+```bash
+wt new feature/new-api develop
+```
+
+Creates `feature/new-api` branching from `develop` instead of the default branch.
+
+### Branch with Slashes (Auto-slugified)
+
+```bash
+wt new team/alice/bug-fix
+```
+
+Creates worktree at `~/worktrees/myapp/team-alice-bug-fix/` (slashes converted to hyphens).
+
+## Package Manager Detection
+
+The command automatically detects your package manager:
+
+| Lockfile | Package Manager | Install Command |
+|----------|----------------|------------------|
+| `bun.lockb` | bun | `bun install` |
+| `pnpm-lock.yaml` | pnpm | `pnpm install --frozen-lockfile` |
+| `yarn.lock` | yarn | `yarn install --frozen-lockfile` |
+| `package-lock.json` | npm | `npm ci` |
+| None | npm (fallback) | `npm install` |
+
+## Environment File Handling
+
+By default, copies `.env` from:
+- Primary worktree's package directory
+- Can be customized via `WT_ENV_FILE` in `.wtconfig`
+
+<Note>
+  If the source `.env` file doesn't exist, a warning is shown but the worktree creation continues.
+</Note>
+
+## Error Handling
+
+### Branch Already Exists in Worktree
+
+```bash
+$ wt new feature/existing
+[warn] Branch 'feature/existing' is already checked out in: ~/worktrees/myapp/feature-existing
+~/worktrees/myapp/feature-existing
+```
+
+Returns the existing path without creating a new worktree.
+
+### Target Path Already Exists
+
+```bash
+$ wt new feature/collision
+[error] Target path already exists: ~/worktrees/myapp/feature-collision
+```
+
+Fails if the target directory exists but isn't a worktree.
+
+### Behind Remote Warning
+
+```bash
+[warn] Branch 'feature/old' is 3 commit(s) behind origin/main.
+[warn] 최신 상태로 맞추려면: git -C <worktree경로> rebase origin/main
+```
+
+Displays when an existing branch is behind its remote tracking branch.
+
+## Configuration
+
+Customize behavior via `.wtconfig` in your repo root:
+
+```bash
+# Base directory for worktrees (default: ~/worktrees/<repo-name>)
+WT_BASE_DIR="$HOME/dev/worktrees/myproject"
+
+# Package directory relative to repo root
+WT_WEB_DIR="packages/web"
+
+# Environment file path relative to repo root
+WT_ENV_FILE="apps/frontend/.env"
+```
+
+## Shell Integration
+
+With the shell function installed via `wt install`, the command automatically changes to the new worktree:
+
+```bash
+$ wt new feature/quick-fix
+[ok] Worktree ready: ~/worktrees/myapp/feature-quick-fix
+$ pwd
+~/worktrees/myapp/feature-quick-fix
+```
+
+## See Also
+
+- [wt ls](/commands/ls) - List and navigate worktrees
+- [wt rm](/commands/rm) - Remove worktrees
+- [wt sync](/commands/sync) - Sync environment files

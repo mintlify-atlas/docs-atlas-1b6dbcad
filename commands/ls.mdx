@@ -1,0 +1,191 @@
+---
+title: "wt ls"
+description: "List worktrees with interactive selection"
+---
+
+## Overview
+
+The `wt ls` command displays all git worktrees with their status. By default, it launches an interactive `fzf` picker for easy navigation.
+
+## Syntax
+
+```bash
+wt ls [--plain|--no-fzf|--fzf|-f] [--path-only]
+```
+
+<ParamField path="--fzf" type="flag">
+  Enable interactive fzf mode (default behavior)
+</ParamField>
+
+<ParamField path="-f" type="flag">
+  Alias for `--fzf`
+</ParamField>
+
+<ParamField path="--plain" type="flag">
+  Disable fzf and output plain text table
+</ParamField>
+
+<ParamField path="--no-fzf" type="flag">
+  Alias for `--plain`
+</ParamField>
+
+<ParamField path="--path-only" type="flag">
+  In interactive mode, output only the selected worktree path (useful for scripting)
+</ParamField>
+
+## Interactive Mode (Default)
+
+When `fzf` is installed, `wt ls` launches an interactive picker:
+
+```bash
+$ wt ls
+```
+
+**Interactive Display:**
+```
+> wt ls>
+  main              a1b2c3d  clean   /Users/dev/myapp
+  feature/api       b2c3d4e  dirty   /Users/dev/worktrees/myapp/feature-api
+  bugfix/auth       c3d4e5f  clean   /Users/dev/worktrees/myapp/bugfix-auth
+  3/3
+```
+
+### Navigation
+
+- **Arrow keys / Ctrl-N/P**: Navigate through worktrees
+- **Enter**: Select worktree and navigate to it (with shell integration)
+- **Esc / Ctrl-C**: Cancel selection
+
+### Selected Output
+
+```
+feature/api    b2c3d4e  dirty   /Users/dev/worktrees/myapp/feature-api
+```
+
+With shell integration from `wt install`, selecting a worktree automatically changes to that directory.
+
+## Plain Text Mode
+
+Disable interactive mode for scripting or when `fzf` is not installed:
+
+```bash
+wt ls --plain
+```
+
+**Output:**
+```
+BRANCH                         HEAD       STATE    PATH
+------                         ----       -----    ----
+main                           a1b2c3d    clean    /Users/dev/myapp
+feature/api                    b2c3d4e    dirty    /Users/dev/worktrees/myapp/feature-api
+bugfix/auth                    c3d4e5f    clean    /Users/dev/worktrees/myapp/bugfix-auth
+feature/user-profile           d4e5f6a    clean    /Users/dev/worktrees/myapp/feature-user-profile
+```
+
+## Output Columns
+
+| Column | Description |
+|--------|-------------|
+| **BRANCH** | Branch name checked out in the worktree |
+| **HEAD** | Short commit hash (first 7 characters) |
+| **STATE** | `clean` (green) or `dirty` (red) based on uncommitted changes |
+| **PATH** | Absolute path to the worktree directory |
+
+## Path-Only Mode
+
+Use `--path-only` in interactive mode to output only the path (useful for scripting):
+
+```bash
+wt ls --path-only
+```
+
+After selecting in fzf:
+```
+/Users/dev/worktrees/myapp/feature-api
+```
+
+<Warning>
+  `--path-only` only works in interactive mode. Using it with `--plain` will result in an error.
+</Warning>
+
+## Examples
+
+### Quick Navigation
+
+```bash
+wt ls
+# Opens fzf picker, select worktree with Enter
+# Automatically cd's to selected worktree (with shell integration)
+```
+
+### Scripting: Get Path of Selected Worktree
+
+```bash
+SELECTED=$(wt ls --path-only)
+if [ -n "$SELECTED" ]; then
+  echo "You selected: $SELECTED"
+fi
+```
+
+### View All Worktrees Without Interaction
+
+```bash
+wt ls --plain
+```
+
+### Pipe to Other Commands
+
+```bash
+wt ls --plain | grep dirty
+```
+
+Outputs only worktrees with uncommitted changes.
+
+## State Detection
+
+Worktree state is determined by `git status --porcelain`:
+
+- **clean** (displayed in green): No uncommitted changes, untracked files, or staged changes
+- **dirty** (displayed in red): Has uncommitted changes, staged changes, or untracked files
+
+## Automatic Fallback
+
+If `fzf` is not installed:
+
+```bash
+$ wt ls
+[warn] fzf is not installed. Falling back to plain list output.
+BRANCH                         HEAD       STATE    PATH
+------                         ----       -----    ----
+...
+```
+
+<Note>
+  Install `fzf` for the best experience: `wt install` automatically attempts to install it, or visit [fzf installation guide](https://github.com/junegunn/fzf#installation).
+</Note>
+
+## Shell Integration
+
+With the shell function from `wt install`:
+
+```bash
+$ wt ls
+# Select worktree in fzf
+$ pwd
+/Users/dev/worktrees/myapp/feature-api
+```
+
+The command automatically navigates to the selected worktree.
+
+## Exit Codes
+
+| Code | Meaning |
+|------|----------|
+| 0 | Success (worktree selected or list displayed) |
+| 1 | No selection made (user cancelled fzf) or error |
+
+## See Also
+
+- [wt cd](/commands/cd) - Navigate to specific worktree by branch name
+- [wt status](/commands/status) - View detailed status of all worktrees
+- [wt new](/commands/new) - Create new worktrees

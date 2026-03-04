@@ -1,0 +1,441 @@
+---
+title: Package Manager Detection
+description: How wt automatically detects and uses your package manager
+---
+
+The `wt` CLI automatically detects your package manager by examining lockfiles in your project. This ensures that dependencies are installed and dev servers are run using the correct tool.
+
+## Detection Logic
+
+Package manager detection happens in the `detect_package_manager` function (around line 348) and checks for lockfiles in this priority order:
+
+<Steps>
+  <Step title="Bun">
+    Checks for `bun.lockb`
+    
+    ```bash
+    PM_NAME="bun"
+    PM_INSTALL_CMD="bun install"
+    PM_DEV_CMD="bun run dev"
+    ```
+  </Step>
+  
+  <Step title="pnpm">
+    Checks for `pnpm-lock.yaml`
+    
+    ```bash
+    PM_NAME="pnpm"
+    PM_INSTALL_CMD="pnpm install --frozen-lockfile"
+    PM_DEV_CMD="pnpm dev"
+    ```
+  </Step>
+  
+  <Step title="Yarn">
+    Checks for `yarn.lock`
+    
+    ```bash
+    PM_NAME="yarn"
+    PM_INSTALL_CMD="yarn install --frozen-lockfile"
+    PM_DEV_CMD="yarn dev"
+    ```
+  </Step>
+  
+  <Step title="npm">
+    Checks for `package-lock.json`
+    
+    ```bash
+    PM_NAME="npm"
+    PM_INSTALL_CMD="npm ci"
+    PM_DEV_CMD="npm run dev"
+    ```
+  </Step>
+  
+  <Step title="Fallback">
+    No lockfile found
+    
+    ```bash
+    PM_NAME="npm"
+    PM_INSTALL_CMD="npm install"
+    PM_DEV_CMD="npm run dev"
+    ```
+    
+    <Warning>A warning is displayed when no lockfile is found.</Warning>
+  </Step>
+</Steps>
+
+## Supported Package Managers
+
+### Bun
+
+**Lockfile:** `bun.lockb`
+
+<CodeGroup>
+```bash Install Command
+bun install
+```
+
+```bash Dev Command
+bun run dev
+```
+</CodeGroup>
+
+**When detected:**
+- Fastest installation and runtime
+- Native TypeScript support
+- Used automatically when `bun.lockb` exists
+
+### pnpm
+
+**Lockfile:** `pnpm-lock.yaml`
+
+<CodeGroup>
+```bash Install Command
+pnpm install --frozen-lockfile
+```
+
+```bash Dev Command
+pnpm dev
+```
+</CodeGroup>
+
+**Features:**
+- `--frozen-lockfile` ensures reproducible installs
+- Disk space efficient with shared dependencies
+- Fast installation with smart caching
+
+### Yarn
+
+**Lockfile:** `yarn.lock`
+
+<CodeGroup>
+```bash Install Command
+yarn install --frozen-lockfile
+```
+
+```bash Dev Command
+yarn dev
+```
+</CodeGroup>
+
+**Features:**
+- `--frozen-lockfile` prevents lockfile updates
+- Works with both Yarn Classic and Yarn Berry
+- Parallel installation for speed
+
+### npm
+
+**Lockfile:** `package-lock.json`
+
+<CodeGroup>
+```bash Install Command (with lockfile)
+npm ci
+```
+
+```bash Install Command (no lockfile)
+npm install
+```
+
+```bash Dev Command
+npm run dev
+```
+</CodeGroup>
+
+**Features:**
+- `npm ci` for clean, reproducible installs
+- Falls back to `npm install` if no lockfile
+- Universal compatibility
+
+## Usage in Commands
+
+### wt new
+
+Automatically installs dependencies using the detected package manager:
+
+```bash
+$ wt new feature/new-ui
+[info] Creating branch 'feature/new-ui' from 'main'
+[info] Installing dependencies with pnpm in /home/user/worktrees/my-app/feature-new-ui/web
+[ok] Worktree ready: /home/user/worktrees/my-app/feature-new-ui
+```
+
+**Process:**
+1. Create worktree
+2. Copy `.env` file
+3. Detect package manager from lockfile
+4. Run install command
+
+### wt dev
+
+Runs the dev server using the detected package manager:
+
+```bash
+$ wt dev feature/new-ui
+[info] Running dev with pnpm in /home/user/worktrees/my-app/feature-new-ui/web
+```
+
+**Process:**
+1. Resolve worktree path
+2. Locate package directory
+3. Detect package manager
+4. Execute dev command
+
+## Lockfile Patterns
+
+<Tabs>
+  <Tab title="Single Package">
+    ```
+    my-app/
+    ├── package.json
+    ├── pnpm-lock.yaml  ← Detected here
+    └── src/
+    ```
+    
+    Detection happens at repository root.
+  </Tab>
+  
+  <Tab title="Web Subdirectory">
+    ```
+    my-project/
+    ├── docs/
+    └── web/
+        ├── package.json
+        ├── yarn.lock  ← Detected here
+        └── src/
+    ```
+    
+    Detection happens in the `WT_WEB_DIR` subdirectory.
+  </Tab>
+  
+  <Tab title="Monorepo">
+    ```
+    monorepo/
+    ├── pnpm-workspace.yaml
+    ├── pnpm-lock.yaml  ← Detected at root
+    ├── packages/
+    └── apps/
+        └── frontend/
+            └── package.json
+    ```
+    
+    Detection uses the lockfile at `WT_WEB_DIR` location.
+  </Tab>
+</Tabs>
+
+## Examples by Project Type
+
+<AccordionGroup>
+<Accordion title="Next.js with pnpm">
+```bash Project Structure
+my-nextjs-app/
+├── .wtconfig
+├── package.json
+├── pnpm-lock.yaml
+└── app/
+```
+
+```bash .wtconfig
+WT_WEB_DIR="."
+```
+
+**Detected:**
+- Package manager: `pnpm`
+- Install: `pnpm install --frozen-lockfile`
+- Dev: `pnpm dev`
+</Accordion>
+
+<Accordion title="Vite with Bun">
+```bash Project Structure
+vite-app/
+├── package.json
+├── bun.lockb
+└── src/
+```
+
+**Detected:**
+- Package manager: `bun`
+- Install: `bun install`
+- Dev: `bun run dev`
+</Accordion>
+
+<Accordion title="Monorepo with Yarn">
+```bash Project Structure
+monorepo/
+├── .wtconfig
+├── package.json
+├── yarn.lock
+└── apps/
+    └── web/
+        └── package.json
+```
+
+```bash .wtconfig
+WT_WEB_DIR="apps/web"
+```
+
+**Detected:**
+- Package manager: `yarn`
+- Install: `yarn install --frozen-lockfile`
+- Dev: `yarn dev`
+</Accordion>
+
+<Accordion title="Legacy Project with npm">
+```bash Project Structure
+legacy-app/
+├── .wtconfig
+├── web/
+│   ├── package.json
+│   └── package-lock.json
+└── docs/
+```
+
+```bash .wtconfig
+WT_WEB_DIR="web"
+```
+
+**Detected:**
+- Package manager: `npm`
+- Install: `npm ci`
+- Dev: `npm run dev`
+</Accordion>
+</AccordionGroup>
+
+## Frozen Lockfile Behavior
+
+<Info>
+By default, `wt` uses "frozen lockfile" modes to ensure consistent installations across worktrees.
+</Info>
+
+### Why Frozen Lockfiles?
+
+<CardGroup cols={2}>
+  <Card title="Reproducibility" icon="copy">
+    Ensures all worktrees have identical dependency versions
+  </Card>
+  
+  <Card title="Speed" icon="bolt">
+    Skips dependency resolution for faster installs
+  </Card>
+  
+  <Card title="Safety" icon="shield">
+    Prevents accidental lockfile modifications
+  </Card>
+  
+  <Card title="CI Parity" icon="check">
+    Matches typical CI/CD install behavior
+  </Card>
+</CardGroup>
+
+### Package Manager Comparison
+
+| Package Manager | Standard Install | Frozen Lockfile | Used by wt |
+|-----------------|------------------|-----------------|------------|
+| **bun**         | `bun install`    | N/A (always frozen) | `bun install` |
+| **pnpm**        | `pnpm install`   | `pnpm install --frozen-lockfile` | `--frozen-lockfile` |
+| **yarn**        | `yarn install`   | `yarn install --frozen-lockfile` | `--frozen-lockfile` |
+| **npm**         | `npm install`    | `npm ci` | `npm ci` (with lockfile) |
+
+## Troubleshooting
+
+<AccordionGroup>
+<Accordion title="Warning: No lockfile found">
+**Message:**
+```
+[warn] No lockfile found in /path/to/package/dir. Falling back to npm install.
+```
+
+**Solution:**
+1. Generate a lockfile for your project:
+   ```bash
+   # Choose one based on your package manager
+   bun install      # Creates bun.lockb
+   pnpm install     # Creates pnpm-lock.yaml
+   yarn install     # Creates yarn.lock
+   npm install      # Creates package-lock.json
+   ```
+2. Commit the lockfile to version control
+3. Run `wt new` again
+</Accordion>
+
+<Accordion title="Error: Required command not found">
+**Message:**
+```
+[error] Required command not found: pnpm
+```
+
+**Solution:**
+Install the detected package manager:
+
+<CodeGroup>
+```bash Install Bun
+curl -fsSL https://bun.sh/install | bash
+```
+
+```bash Install pnpm
+npm install -g pnpm
+# or
+curl -fsSL https://get.pnpm.io/install.sh | sh -
+```
+
+```bash Install Yarn
+npm install -g yarn
+# or
+corepack enable
+```
+</CodeGroup>
+</Accordion>
+
+<Accordion title="Wrong package manager detected">
+If you have multiple lockfiles, `wt` uses priority order (bun → pnpm → yarn → npm).
+
+**Solution:**
+Remove unused lockfiles:
+```bash
+# Keep only the lockfile for your package manager
+rm bun.lockb        # If not using bun
+rm pnpm-lock.yaml   # If not using pnpm
+rm yarn.lock        # If not using yarn
+rm package-lock.json # If not using npm
+```
+</Accordion>
+
+<Accordion title="Frozen lockfile install fails">
+**Error scenarios:**
+- Lockfile out of sync with `package.json`
+- Lockfile from different package manager version
+
+**Solution:**
+1. Regenerate the lockfile in primary worktree:
+   ```bash
+   rm pnpm-lock.yaml  # or your lockfile
+   pnpm install       # regenerate
+   ```
+2. Commit the updated lockfile
+3. Create new worktrees with `wt new`
+</Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Steps>
+  <Step title="Commit Lockfiles">
+    Always commit lockfiles to version control for consistent installs across worktrees.
+  </Step>
+  
+  <Step title="Use One Package Manager">
+    Stick to one package manager per project. Remove other lockfiles to avoid confusion.
+  </Step>
+  
+  <Step title="Keep Lockfiles Updated">
+    Regularly update lockfiles in the primary worktree, then create new worktrees to use updated dependencies.
+  </Step>
+  
+  <Step title="Install Package Manager Globally">
+    Ensure your package manager is installed globally so it's available for all worktrees.
+  </Step>
+</Steps>
+
+## Related
+
+- [.wtconfig File](/configuration/wtconfig) - Configure package detection paths
+- [`wt new`](/commands/new) - Creates worktrees and installs dependencies
+- [`wt dev`](/commands/dev) - Runs dev server with detected package manager
